@@ -1,0 +1,12 @@
+[Unit]
+Description=Simple web server serving my pictures
+After=my-pictures-create-dir.service
+Wants=my-pictures-create-dir.service
+
+[Service]
+Type=exec
+ExecStart=python3 -m http.server --bind 127.0.0.1 --directory /home/%u/.local/share/my-pictures/ 8080
+StandardOutput=journal
+
+[Install]
+WantedBy=default.target

@@ -1,0 +1,12 @@
+[Unit]
+Description=Serves the files needed for this workshop
+After=workshop-files-create-dir.service
+Wants=workshop-files-create-dir.service
+
+[Service]
+Type=exec
+ExecStart=python3 -m http.server --bind 0.0.0.0 --directory /home/%u/.local/share/workshop-files/ 8000
+StandardOutput=journal
+
+[Install]
+WantedBy=default.target

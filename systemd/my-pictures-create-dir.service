@@ -1,0 +1,8 @@
+[Unit]
+Description=Create the pictures directory
+
+[Service]
+Type=oneshot
+ExecStart=mkdir -p /home/%u/.local/share/my-pictures
+RemainAfterExit=true
+StandardOutput=journal
