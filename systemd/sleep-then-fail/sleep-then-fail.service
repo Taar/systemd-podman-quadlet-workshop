@@ -1,0 +1,18 @@
+[Unit]
+Description=Sleep then exits with status code 42
+# See `man systemd.unit` for more details
+StartLimitIntervalSec=60
+StartLimitBurst=2
+
+[Service]
+Type=exec
+ExecStart=/usr/bin/bash -c "sleep 60 && exit 42"
+StandardOutput=journal
+# See `man systemd.service` for more details
+Restart=on-failure
+RestartSec=1
+RestartSteps=5
+RestartMaxDelaySec=120
+
+[Install]
+WantedBy=default.target
