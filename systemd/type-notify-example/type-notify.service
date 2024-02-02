@@ -1,0 +1,31 @@
+[Unit]
+Description=Type Notify Example
+
+[Service]
+Type=notify
+NotifyAccess=all
+# run.sh contains the same code and it much more readable
+# Feel feel to replace this with "/path/to/run.sh" if you would
+# like to tinker with the script :)
+ExecStart=bash -c '\
+echo "Starting up!"\n\
+trap \'echo "Shutting down!"; systemd-notify --stopping; exit 0\' TERM\n\
+trap \'echo "Shutting down!"; systemd-notify --stopping; exit 0\' INT\n\
+if [ -n "$NOTIFY_SOCKET" ]\n\
+then\n\
+  echo "Ready!"\n\
+  systemd-notify --ready\n\
+else\n\
+  echo "\$NOTIFY_SOCKET is not set"\n\
+  exit 1\n\
+fi\n\
+echo "Zzzzz"\n\
+sleep infinity\n\
+'
+StandardOutput=journal
+Restart=on-failure
+TimeoutStartSec=5
+TimeoutStopSec=5
+
+[Install]
+WantedBy=default.target
