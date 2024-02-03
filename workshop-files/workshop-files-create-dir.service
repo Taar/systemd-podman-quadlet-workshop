@@ -1,8 +1,0 @@
-[Unit]
-Description=Create the serve directory
-
-[Service]
-Type=oneshot
-ExecStart=mkdir -p /home/%u/.local/share/workshop-files
-RemainAfterExit=true
-StandardOutput=journal

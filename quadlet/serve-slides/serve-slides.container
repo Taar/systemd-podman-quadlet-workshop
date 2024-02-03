@@ -1,0 +1,12 @@
+[Unit]
+Description=Slide Web Server
+
+[Container]
+Image=nginx-serve-slides:latest
+AutoUpdate=local
+HostName=nginx-serve-slide
+PublishPort=0.0.0.0:8000:8000
+LogDriver=journald
+
+[Service]
+TimeoutStartSec=120

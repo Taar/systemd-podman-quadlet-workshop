@@ -1,0 +1,17 @@
+ARG NGINX_VERSION=1.25.3
+ARG ALPINE_VERSION=3.19.1
+
+# =~=~=~=~=~=~= Zip Image =~=~=~=~=~=~=
+FROM docker.io/library/alpine:${ALPINE_VERSION} as zip
+
+RUN apk update && apk add --no-cache zip
+RUN mkdir /workshop-files
+COPY . /workshop-files
+RUN zip -r /main.zip /workshop-files
+
+# =~=~=~=~=~=~= Application Image =~=~=~=~=~=~=
+FROM docker.io/library/nginx:${NGINX_VERSION}-alpine as application
+
+COPY ./slides /usr/share/nginx/html
+COPY --from=zip /main.zip /usr/share/nginx/html/main.zip
+COPY ./quadlet/serve-slides/default.conf /etc/nginx/conf.d/default.conf
