@@ -1,0 +1,10 @@
+[Unit]
+Description=Traefik WhoAmI Image
+After=local-fs.target network-online.target
+
+[Image]
+Image=docker.io/traefik/whoami:latest
+TLSVerify=true
+
+[Service]
+TimeoutStartSec=120

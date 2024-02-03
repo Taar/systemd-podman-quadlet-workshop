@@ -1,0 +1,15 @@
+[Unit]
+Description=Traefik WhoAmI Container
+
+[Container]
+Image=whoami.image
+Network=whoami.network
+Exec=--verbose
+HostName=my-whoami
+LogDriver=journald
+
+[Service]
+TimeoutStartSec=120
+
+[Install]
+WantedBy=default.target
