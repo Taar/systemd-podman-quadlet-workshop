@@ -30,5 +30,5 @@ else
   echo "Creating ~/.config/systemd/user if it doesn't exist"
 
   [ ! -d ~/.config/systemd/user ] && \
-  mkdir -p ~/.config/system/user
+  mkdir -p ~/.config/systemd/user
 fi
