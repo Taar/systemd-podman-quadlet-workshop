@@ -9,7 +9,7 @@ then
   root="$XDG_CONFIG_HOME"
 fi
 
-echo "Creating \"$root/containers/systemd\" if it doesn't exist"
+echo "Creating \"$root/systemd/user\" if it doesn't exist"
 
-[ ! -d "$root/containers/systemd" ] && \
-mkdir -p "$root/containers/systemd"
+[ ! -d "$root/systemd/user" ] && \
+mkdir -p "$root/systemd/user"

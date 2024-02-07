@@ -1,22 +1,16 @@
 #!/usr/bin/bash
 
-if [ -n "$XDG_DATA_HOME" ]
+root="$HOME"
+if [ -n "$XDG_CONFIG_HOME" ]
 then
-  ln -s "$PWD/whoami.container" \
-        "$XDG_DATA_HOME/containers/systemd/whoami.container"
-
-  ln -s "$PWD/whoami.network" \
-        "$XDG_DATA_HOME/containers/systemd/whoami.network"
-
-  ln -s "$PWD/whoami.image" \
-        "$XDG_DATA_HOME/containers/systemd/whoami.image"
-else
-  ln -s "$PWD/whoami.container" \
-        ~/.config/containers/systemd/whoami.container
-
-  ln -s "$PWD/whoami.network" \
-        ~/.config/containers/systemd/whoami.network
-
-  ln -s "$PWD/whoami.image" \
-        ~/.config/containers/systemd/whoami.image
+  root="$XDG_CONFIG_HOME"
 fi
+
+ln -s "$PWD/whoami.container" \
+      "$root/containers/systemd/whoami.container"
+
+ln -s "$PWD/whoami.network" \
+      "$root/containers/systemd/whoami.network"
+
+ln -s "$PWD/whoami.image" \
+      "$root/containers/systemd/whoami.image"

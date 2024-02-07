@@ -1,8 +1,9 @@
 #!/usr/bin/sh
 
-if [ -n "$XDG_DATA_HOME" ]
+root="$HOME"
+if [ -n "$XDG_CONFIG_HOME" ]
 then
-  ln "$PWD/sleep-then-fail.service" "$XDG_DATA_HOME/systemd/user/sleep-then-fail.service"
-else
-  ln "$PWD/sleep-then-fail.service" ~/.config/systemd/user/sleep-then-fail.service
+  root="$XDG_CONFIG_HOME"
 fi
+
+ln "$PWD/sleep-then-fail.service" "$root/systemd/user/sleep-then-fail.service"

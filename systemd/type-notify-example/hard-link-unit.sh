@@ -1,8 +1,9 @@
 #!/usr/bin/bash
 
-if [ -n "$XDG_DATA_HOME" ]
+root="$HOME"
+if [ -n "$XDG_CONFIG_HOME" ]
 then
-  ln "$PWD/type-notify.service" "$XDG_DATA_HOME/systemd/user/type-notify.service"
-else
-  ln "$PWD/type-notify.service" ~/.config/systemd/user/type-notify.service
+  root="$XDG_CONFIG_HOME"
 fi
+
+ln "$PWD/type-notify.service" "$root/systemd/user/type-notify.service"
