@@ -1,6 +1,6 @@
 #!/usr/bin/bash
 
-root="$HOME"
+root="$HOME/.config"
 if [ -n "$XDG_CONFIG_HOME" ]
 then
   root="$XDG_CONFIG_HOME"
