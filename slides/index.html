@@ -1,0 +1,2556 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+
+    <title></title>
+    <link rel="stylesheet" href="dist/reveal.css" />
+    <link rel="stylesheet" href="css/my-dracula.css" id="theme" />
+    <link rel="stylesheet" href="plugin/highlight/zenburn.css" />
+	<link rel="stylesheet" href="css/layout.css" />
+	<link rel="stylesheet" href="plugin/customcontrols/style.css">
+	<link rel="stylesheet" href="plugin/chalkboard/style.css">
+
+	<link rel="stylesheet" href="plugin/reveal-pointer/pointer.css" />
+
+
+    <script defer src="dist/fontawesome/all.min.js"></script>
+
+	<script type="text/javascript">
+		var forgetPop = true;
+		function onPopState(event) {
+			if(forgetPop){
+				forgetPop = false;
+			} else {
+				parent.postMessage(event.target.location.href, "app://obsidian.md");
+			}
+        }
+		window.onpopstate = onPopState;
+		window.onmessage = event => {
+			if(event.data == "reload"){
+				window.document.location.reload();
+			}
+			forgetPop = true;
+		}
+
+		function fitElements(){
+			const itemsToFit = document.getElementsByClassName('fitText');
+			for (const item in itemsToFit) {
+				if (Object.hasOwnProperty.call(itemsToFit, item)) {
+					var element = itemsToFit[item];
+					fitElement(element,1, 1000);
+					element.classList.remove('fitText');
+				}
+			}
+		}
+
+		function fitElement(element, start, end){
+
+			let size = (end + start) / 2;
+			element.style.fontSize = `${size}px`;
+
+			if(Math.abs(start - end) < 1){
+				while(element.scrollHeight > element.offsetHeight){
+					size--;
+					element.style.fontSize = `${size}px`;
+				}
+				return;
+			}
+
+			if(element.scrollHeight > element.offsetHeight){
+				fitElement(element, start, size);
+			} else {
+				fitElement(element, size, end);
+			}		
+		}
+
+
+		document.onreadystatechange = () => {
+			fitElements();
+			if (document.readyState === 'complete') {
+				if (window.location.href.indexOf("?export") != -1){
+					parent.postMessage(event.target.location.href, "app://obsidian.md");
+				}
+				if (window.location.href.indexOf("print-pdf") != -1){
+					let stateCheck = setInterval(() => {
+						clearInterval(stateCheck);
+						window.print();
+					}, 250);
+				}
+			}
+	};
+
+
+        </script>
+  </head>
+  <body>
+    <div class="reveal">
+      <div class="slides"><section  data-markdown><script type="text/template"><!-- .slide: class="drop" -->
+<div class="" style="position: absolute; left: 0px; top: 0px; height: 700px; width: 960px; min-height: 700px; display: flex; flex-direction: column; align-items: center; justify-content: center" absolute="true">
+
+## Systemd & Podman Quadlet Workshop
+
+By: Randy Topliffe
+</div></script></section><section  data-markdown><script type="text/template"><!-- .slide: class="drop" -->
+<div class="" style="position: absolute; left: 0px; top: 0px; height: 700px; width: 960px; min-height: 700px; display: flex; flex-direction: column; align-items: center; justify-content: center" absolute="true">
+
+## Workstation Checks
+
+- &shy;<!-- .element: class="fragment" data-fragment-index="1" -->`podman --version` returns `>= 4.8.3` 
+- &shy;<!-- .element: class="fragment" data-fragment-index="2" -->`podman` is running as rootless (not rootful)
+- &shy;<!-- .element: class="fragment" data-fragment-index="3" -->`systemctl --version` returns `>= v250`
+
+```bash
+sysctl kernel.unprivileged_userns_clone
+# kernel.unprivileged_userns_clone=1
+
+sysctl -w kernel.unprivileged_userns_clone=1
+```
+<!-- .element: class="fragment" -->
+</div></script></section><section  data-markdown><script type="text/template"><!-- .slide: class="drop" -->
+<div class="" style="position: absolute; left: 0px; top: 0px; height: 700px; width: 960px; min-height: 700px; display: flex; flex-direction: column; align-items: center; justify-content: center" absolute="true">
+
+## Download Files Here!
+
+**github.com** / **Taar** / **systemd-podman-quadlet-workshop**
+
+```bash
+wget .../archive/refs/heads/main.zip
+
+git clone ...
+```
+
+
+<style>
+	 .workshop-link {
+		font-size: 0.5em;
+	 }
+</style>
+
+<div class="" style="position: absolute; left: 0%; top: 0%; height: 6%; width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center" >
+
+https://github.com/Taar/systemd-podman-quadlet-workshop<!-- .element: class="workshop-link" -->
+</div>
+</div></script></section><section  data-markdown><script type="text/template"><!-- .slide: class="drop" -->
+<div class="" style="position: absolute; left: 0px; top: 0px; height: 700px; width: 960px; min-height: 700px; display: flex; flex-direction: column; align-items: center; justify-content: center" absolute="true">
+
+## What is systemd?
+
+- &shy;<!-- .element: class="fragment" data-fragment-index="1" -->Init system 
+- &shy;<!-- .element: class="fragment" data-fragment-index="2" -->Bootstraps & manages user space processes 
+- &shy;<!-- .element: class="fragment" data-fragment-index="3" -->Provides utilities like a logging system
+
+
+<style>
+	.logo-background{
+		background: #404040;
+		 filter: blur(14px);
+		 position: absolute;
+	}
+	 .workshop-link {
+		font-size: 0.5em;
+	 }
+</style>
+
+<div class="" style="position: absolute; left: 0%; top: 94%; height: 6%; width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center" >
+
+<img src="LUG/2024-02-12/systemd-logo.png" alt="" style="object-fit: scale-down" class="logo-background">
+
+
+<img src="LUG/2024-02-12/systemd-logo.png" alt="" style="z-index: 1000; object-fit: scale-down">
+
+</div>
+<div class="" style="position: absolute; left: 0%; top: 0%; height: 6%; width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center" >
+
+https://github.com/Taar/systemd-podman-quadlet-workshop<!-- .element: class="workshop-link" -->
+</div>
+</div></script></section><section  data-markdown><script type="text/template"><!-- .slide: class="drop" -->
+<div class="" style="position: absolute; left: 0px; top: 0px; height: 700px; width: 960px; min-height: 700px; display: flex; flex-direction: column; align-items: center; justify-content: center" absolute="true">
+
+### Units of SystemD
+
+- &shy;<!-- .element: class="fragment" data-fragment-index="1" -->`.device` - Information about devices 
+- &shy;<!-- .element: class="fragment" data-fragment-index="2" -->`.mount` - Information about mount points
+- &shy;<!-- .element: class="fragment" data-fragment-index="3" -->`.automount` - On-demand mounting for `.mount` units
+- &shy;<!-- .element: class="fragment" data-fragment-index="4" -->`.swap` - Information about a swap device
+
+
+<style>
+	.logo-background{
+		background: #404040;
+		 filter: blur(14px);
+		 position: absolute;
+	}
+	 .workshop-link {
+		font-size: 0.5em;
+	 }
+</style>
+
+<div class="" style="position: absolute; left: 0%; top: 94%; height: 6%; width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center" >
+
+<img src="LUG/2024-02-12/systemd-logo.png" alt="" style="object-fit: scale-down" class="logo-background">
+
+
+<img src="LUG/2024-02-12/systemd-logo.png" alt="" style="z-index: 1000; object-fit: scale-down">
+
+</div>
+<div class="" style="position: absolute; left: 0%; top: 0%; height: 6%; width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center" >
+
+https://github.com/Taar/systemd-podman-quadlet-workshop<!-- .element: class="workshop-link" -->
+</div>
+</div></script></section><section  data-markdown><script type="text/template"><!-- .slide: class="drop" -->
+<div class="" style="position: absolute; left: 0px; top: 0px; height: 700px; width: 960px; min-height: 700px; display: flex; flex-direction: column; align-items: center; justify-content: center" absolute="true">
+
+### Units of SystemD Con't
+
+- &shy;<!-- .element: class="fragment" data-fragment-index="1" -->`.socket` - Allows for socket-based activation of units
+- &shy;<!-- .element: class="fragment" data-fragment-index="2" -->`.timer` - Allows for timer-based activation of units
+- &shy;<!-- .element: class="fragment" data-fragment-index="3" -->`.path` - Allows for path-based activation of units
+
+<style>
+	.logo-background{
+		background: #404040;
+		 filter: blur(14px);
+		 position: absolute;
+	}
+	 .workshop-link {
+		font-size: 0.5em;
+	 }
+</style>
+
+<div class="" style="position: absolute; left: 0%; top: 94%; height: 6%; width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center" >
+
+<img src="LUG/2024-02-12/systemd-logo.png" alt="" style="object-fit: scale-down" class="logo-background">
+
+
+<img src="LUG/2024-02-12/systemd-logo.png" alt="" style="z-index: 1000; object-fit: scale-down">
+
+</div>
+<div class="" style="position: absolute; left: 0%; top: 0%; height: 6%; width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center" >
+
+https://github.com/Taar/systemd-podman-quadlet-workshop<!-- .element: class="workshop-link" -->
+</div>
+</div></script></section><section  data-markdown><script type="text/template"><!-- .slide: class="drop" -->
+<div class="" style="position: absolute; left: 0px; top: 0px; height: 700px; width: 960px; min-height: 700px; display: flex; flex-direction: column; align-items: center; justify-content: center" absolute="true">
+
+### Units of SystemD Con't
+
+- &shy;<!-- .element: class="fragment" data-fragment-index="1" -->`.slice` - Manages the resources of a group of processes
+- &shy;<!-- .element: class="fragment" data-fragment-index="2" -->`.scope` - Manages a set of system processes
+- &shy;<!-- .element: class="fragment" data-fragment-index="3" -->`.target` - Synchronization points for ordering dependencies
+- &shy;<!-- .element: class="fragment" data-fragment-index="4" -->`.service` - Information about a process that is controlled and supervised by systemd
+
+
+<style>
+	.logo-background{
+		background: #404040;
+		 filter: blur(14px);
+		 position: absolute;
+	}
+	 .workshop-link {
+		font-size: 0.5em;
+	 }
+</style>
+
+<div class="" style="position: absolute; left: 0%; top: 94%; height: 6%; width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center" >
+
+<img src="LUG/2024-02-12/systemd-logo.png" alt="" style="object-fit: scale-down" class="logo-background">
+
+
+<img src="LUG/2024-02-12/systemd-logo.png" alt="" style="z-index: 1000; object-fit: scale-down">
+
+</div>
+<div class="" style="position: absolute; left: 0%; top: 0%; height: 6%; width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center" >
+
+https://github.com/Taar/systemd-podman-quadlet-workshop<!-- .element: class="workshop-link" -->
+</div>
+</div></script></section><section  data-markdown><script type="text/template"><!-- .slide: class="drop" -->
+<div class="" style="position: absolute; left: 0px; top: 0px; height: 700px; width: 960px; min-height: 700px; display: flex; flex-direction: column; align-items: center; justify-content: center" absolute="true">
+
+#### Open Your Terminal!
+
+```bash
+systemctl --user status
+
+# Tree like overflow of the all active units
+# Press `q` to exit
+```
+
+```bash
+systemctl --user status podman.service
+
+# Specific information about the unit
+# Press `q` to exit
+```
+
+
+<style>
+	.logo-background{
+		background: #404040;
+		 filter: blur(14px);
+		 position: absolute;
+	}
+	 .workshop-link {
+		font-size: 0.5em;
+	 }
+</style>
+
+<div class="" style="position: absolute; left: 0%; top: 94%; height: 6%; width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center" >
+
+<img src="LUG/2024-02-12/systemd-logo.png" alt="" style="object-fit: scale-down" class="logo-background">
+
+
+<img src="LUG/2024-02-12/systemd-logo.png" alt="" style="z-index: 1000; object-fit: scale-down">
+
+</div>
+<div class="" style="position: absolute; left: 0%; top: 0%; height: 6%; width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center" >
+
+https://github.com/Taar/systemd-podman-quadlet-workshop<!-- .element: class="workshop-link" -->
+</div>
+</div></script></section><section  data-markdown><script type="text/template"><!-- .slide: class="drop" -->
+<div class="" style="position: absolute; left: 0px; top: 0px; height: 700px; width: 960px; min-height: 700px; display: flex; flex-direction: column; align-items: center; justify-content: center" absolute="true">
+
+```bash
+systemctl --user list-units
+
+# Overview of all loaded units
+# Press `q` to exit
+```
+
+```bash
+systemctl --user list-units --state running
+
+# Overview of all running units
+# Use `--status failed` to see failed units
+# Press `q` to exit
+```
+
+
+<style>
+	.logo-background{
+		background: #404040;
+		 filter: blur(14px);
+		 position: absolute;
+	}
+	 .workshop-link {
+		font-size: 0.5em;
+	 }
+</style>
+
+<div class="" style="position: absolute; left: 0%; top: 94%; height: 6%; width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center" >
+
+<img src="LUG/2024-02-12/systemd-logo.png" alt="" style="object-fit: scale-down" class="logo-background">
+
+
+<img src="LUG/2024-02-12/systemd-logo.png" alt="" style="z-index: 1000; object-fit: scale-down">
+
+</div>
+<div class="" style="position: absolute; left: 0%; top: 0%; height: 6%; width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center" >
+
+https://github.com/Taar/systemd-podman-quadlet-workshop<!-- .element: class="workshop-link" -->
+</div>
+</div></script></section><section  data-markdown><script type="text/template"><!-- .slide: class="drop" -->
+<div class="" style="position: absolute; left: 0px; top: 0px; height: 700px; width: 960px; min-height: 700px; display: flex; flex-direction: column; align-items: center; justify-content: center" absolute="true">
+
+```bash
+# Shows the logs for the podman.service
+
+journalctl --user -ru podman.service
+
+# -u shows the output for the provided unit
+# -r shows latest logs first
+# Press `q` to exit
+```
+
+```bash
+# Shows information when a unit changed state
+# eg. From started to active
+journalctl --user -xe
+
+# -x opens the message catalog
+# -e jumps to the last page
+# Press `q` to exit
+```
+
+
+<style>
+	.logo-background{
+		background: #404040;
+		 filter: blur(14px);
+		 position: absolute;
+	}
+	 .workshop-link {
+		font-size: 0.5em;
+	 }
+</style>
+
+<div class="" style="position: absolute; left: 0%; top: 94%; height: 6%; width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center" >
+
+<img src="LUG/2024-02-12/systemd-logo.png" alt="" style="object-fit: scale-down" class="logo-background">
+
+
+<img src="LUG/2024-02-12/systemd-logo.png" alt="" style="z-index: 1000; object-fit: scale-down">
+
+</div>
+<div class="" style="position: absolute; left: 0%; top: 0%; height: 6%; width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center" >
+
+https://github.com/Taar/systemd-podman-quadlet-workshop<!-- .element: class="workshop-link" -->
+</div>
+</div></script></section><section  data-markdown><script type="text/template"><!-- .slide: class="drop" -->
+<div class="" style="position: absolute; left: 0px; top: 0px; height: 700px; width: 960px; min-height: 700px; display: flex; flex-direction: column; align-items: center; justify-content: center" absolute="true">
+
+### Service Unit Configuration
+- &shy;<!-- .element: class="fragment" data-fragment-index="1" -->Plain text file
+- &shy;<!-- .element: class="fragment" data-fragment-index="2" -->`.service` extension
+- &shy;<!-- .element: class="fragment" data-fragment-index="3" -->Syntax resembles `.ini` and `.toml`
+
+
+<style>
+	.logo-background{
+		background: #404040;
+		 filter: blur(14px);
+		 position: absolute;
+	}
+	 .workshop-link {
+		font-size: 0.5em;
+	 }
+</style>
+
+<div class="" style="position: absolute; left: 0%; top: 94%; height: 6%; width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center" >
+
+<img src="LUG/2024-02-12/systemd-logo.png" alt="" style="object-fit: scale-down" class="logo-background">
+
+
+<img src="LUG/2024-02-12/systemd-logo.png" alt="" style="z-index: 1000; object-fit: scale-down">
+
+</div>
+<div class="" style="position: absolute; left: 0%; top: 0%; height: 6%; width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center" >
+
+https://github.com/Taar/systemd-podman-quadlet-workshop<!-- .element: class="workshop-link" -->
+</div>
+</div></script></section><section  data-markdown><script type="text/template"><!-- .slide: class="drop" -->
+<div class="" style="position: absolute; left: 0px; top: 0px; height: 700px; width: 960px; min-height: 700px; display: flex; flex-direction: column; align-items: center; justify-content: center" absolute="true">
+
+## Sections
+
+- &shy;<!-- .element: class="fragment" data-fragment-index="1" -->`[Unit]`
+- &shy;<!-- .element: class="fragment" data-fragment-index="2" -->`[Service]`
+- &shy;<!-- .element: class="fragment" data-fragment-index="3" -->`[Install]`
+
+
+<style>
+	.logo-background{
+		background: #404040;
+		 filter: blur(14px);
+		 position: absolute;
+	}
+	 .workshop-link {
+		font-size: 0.5em;
+	 }
+</style>
+
+<div class="" style="position: absolute; left: 0%; top: 94%; height: 6%; width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center" >
+
+<img src="LUG/2024-02-12/systemd-logo.png" alt="" style="object-fit: scale-down" class="logo-background">
+
+
+<img src="LUG/2024-02-12/systemd-logo.png" alt="" style="z-index: 1000; object-fit: scale-down">
+
+</div>
+<div class="" style="position: absolute; left: 0%; top: 0%; height: 6%; width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center" >
+
+https://github.com/Taar/systemd-podman-quadlet-workshop<!-- .element: class="workshop-link" -->
+</div>
+</div></script></section><section  data-markdown><script type="text/template"><!-- .slide: class="drop" -->
+<div class="" style="position: absolute; left: 0px; top: 0px; height: 700px; width: 960px; min-height: 700px; display: flex; flex-direction: column; align-items: center; justify-content: center" absolute="true">
+
+### Unit Section
+
+- &shy;<!-- .element: class="fragment" data-fragment-index="1" -->Starts with `[Unit]`
+- &shy;<!-- .element: class="fragment" data-fragment-index="2" -->Section is optional
+- &shy;<!-- .element: class="fragment" data-fragment-index="3" -->Holds generic information about the unit like a human readable description
+
+
+<style>
+	.logo-background{
+		background: #404040;
+		 filter: blur(14px);
+		 position: absolute;
+	}
+	 .workshop-link {
+		font-size: 0.5em;
+	 }
+</style>
+
+<div class="" style="position: absolute; left: 0%; top: 94%; height: 6%; width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center" >
+
+<img src="LUG/2024-02-12/systemd-logo.png" alt="" style="object-fit: scale-down" class="logo-background">
+
+
+<img src="LUG/2024-02-12/systemd-logo.png" alt="" style="z-index: 1000; object-fit: scale-down">
+
+</div>
+<div class="" style="position: absolute; left: 0%; top: 0%; height: 6%; width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center" >
+
+https://github.com/Taar/systemd-podman-quadlet-workshop<!-- .element: class="workshop-link" -->
+</div>
+</div></script></section><section  data-markdown><script type="text/template"><!-- .slide: class="drop" -->
+<div class="" style="position: absolute; left: 0px; top: 0px; height: 700px; width: 960px; min-height: 700px; display: flex; flex-direction: column; align-items: center; justify-content: center" absolute="true">
+
+### Unit Options
+
+- &shy;<!-- .element: class="fragment" data-fragment-index="1" -->`Description` - Human readable description of the unit
+- &shy;<!-- .element: class="fragment" data-fragment-index="2" -->`Wants` - *Weak* dependency on other units
+- &shy;<!-- .element: class="fragment" data-fragment-index="3" -->`After` & `Before` - Control ordering when the unit is started or stopped
+
+
+<style>
+	.logo-background{
+		background: #404040;
+		 filter: blur(14px);
+		 position: absolute;
+	}
+	 .workshop-link {
+		font-size: 0.5em;
+	 }
+</style>
+
+<div class="" style="position: absolute; left: 0%; top: 94%; height: 6%; width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center" >
+
+<img src="LUG/2024-02-12/systemd-logo.png" alt="" style="object-fit: scale-down" class="logo-background">
+
+
+<img src="LUG/2024-02-12/systemd-logo.png" alt="" style="z-index: 1000; object-fit: scale-down">
+
+</div>
+<div class="" style="position: absolute; left: 0%; top: 0%; height: 6%; width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center" >
+
+https://github.com/Taar/systemd-podman-quadlet-workshop<!-- .element: class="workshop-link" -->
+</div>
+</div></script></section><section  data-markdown><script type="text/template"><!-- .slide: class="drop" -->
+<div class="" style="position: absolute; left: 0px; top: 0px; height: 700px; width: 960px; min-height: 700px; display: flex; flex-direction: column; align-items: center; justify-content: center" absolute="true">
+
+```systemd
+# ~/workshop-files/systemd/my-pictures/my-pictures.service
+
+[Unit]
+Description=Simple web server serving my pictures
+After=my-pictures-create-dir.service
+Wants=my-pictures-create-dir.service
+
+# `man systemd.unit` to learn more
+```
+
+
+<style>
+	.logo-background{
+		background: #404040;
+		 filter: blur(14px);
+		 position: absolute;
+	}
+	 .workshop-link {
+		font-size: 0.5em;
+	 }
+</style>
+
+<div class="" style="position: absolute; left: 0%; top: 94%; height: 6%; width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center" >
+
+<img src="LUG/2024-02-12/systemd-logo.png" alt="" style="object-fit: scale-down" class="logo-background">
+
+
+<img src="LUG/2024-02-12/systemd-logo.png" alt="" style="z-index: 1000; object-fit: scale-down">
+
+</div>
+<div class="" style="position: absolute; left: 0%; top: 0%; height: 6%; width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center" >
+
+https://github.com/Taar/systemd-podman-quadlet-workshop<!-- .element: class="workshop-link" -->
+</div>
+</div></script></section><section  data-markdown><script type="text/template"><!-- .slide: class="drop" -->
+<div class="" style="position: absolute; left: 0px; top: 0px; height: 700px; width: 960px; min-height: 700px; display: flex; flex-direction: column; align-items: center; justify-content: center" absolute="true">
+
+### Service Section
+- &shy;<!-- .element: class="fragment" data-fragment-index="1" -->Starts with `[Service]`
+- &shy;<!-- .element: class="fragment" data-fragment-index="2" -->Holds specific configuration options for the `.service` unit
+
+
+<style>
+	.logo-background{
+		background: #404040;
+		 filter: blur(14px);
+		 position: absolute;
+	}
+	 .workshop-link {
+		font-size: 0.5em;
+	 }
+</style>
+
+<div class="" style="position: absolute; left: 0%; top: 94%; height: 6%; width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center" >
+
+<img src="LUG/2024-02-12/systemd-logo.png" alt="" style="object-fit: scale-down" class="logo-background">
+
+
+<img src="LUG/2024-02-12/systemd-logo.png" alt="" style="z-index: 1000; object-fit: scale-down">
+
+</div>
+<div class="" style="position: absolute; left: 0%; top: 0%; height: 6%; width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center" >
+
+https://github.com/Taar/systemd-podman-quadlet-workshop<!-- .element: class="workshop-link" -->
+</div>
+</div></script></section><section  data-markdown><script type="text/template"><!-- .slide: class="drop" -->
+<div class="" style="position: absolute; left: 0px; top: 0px; height: 700px; width: 960px; min-height: 700px; display: flex; flex-direction: column; align-items: center; justify-content: center" absolute="true">
+
+### Service Options
+
+- &shy;<!-- .element: class="fragment" data-fragment-index="1" -->`Type` - How the service notifies the manger that the service has started
+- &shy;<!-- .element: class="fragment" data-fragment-index="2" -->`ExecStart` - Command that will be executed when the service is started
+- &shy;<!-- .element: class="fragment" data-fragment-index="3" -->`StandardOutput` - Controls the `stdout` for the executed processes
+
+
+<style>
+	.logo-background{
+		background: #404040;
+		 filter: blur(14px);
+		 position: absolute;
+	}
+	 .workshop-link {
+		font-size: 0.5em;
+	 }
+</style>
+
+<div class="" style="position: absolute; left: 0%; top: 94%; height: 6%; width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center" >
+
+<img src="LUG/2024-02-12/systemd-logo.png" alt="" style="object-fit: scale-down" class="logo-background">
+
+
+<img src="LUG/2024-02-12/systemd-logo.png" alt="" style="z-index: 1000; object-fit: scale-down">
+
+</div>
+<div class="" style="position: absolute; left: 0%; top: 0%; height: 6%; width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center" >
+
+https://github.com/Taar/systemd-podman-quadlet-workshop<!-- .element: class="workshop-link" -->
+</div>
+</div></script></section><section  data-markdown><script type="text/template"><!-- .slide: class="drop" -->
+<div class="" style="position: absolute; left: 0px; top: 0px; height: 700px; width: 960px; min-height: 700px; display: flex; flex-direction: column; align-items: center; justify-content: center" absolute="true">
+
+### Service Types
+
+- &shy;<!-- .element: class="fragment" data-fragment-index="1" -->`simple` - Service is consider started after `fork` is called
+- &shy;<!-- .element: class="fragment" data-fragment-index="2" -->`exec` - Similar to `simple` except it's considered started once `execve` is called
+- &shy;<!-- .element: class="fragment" data-fragment-index="3" -->`oneshot` - Similar to `simple` except it's considered up when the main process exits
+- &shy;<!-- .element: class="fragment" data-fragment-index="4" -->`notify` - The service must send `READY=1` message via `NOTIFY_SOCKET`
+
+
+<style>
+	.logo-background{
+		background: #404040;
+		 filter: blur(14px);
+		 position: absolute;
+	}
+	 .workshop-link {
+		font-size: 0.5em;
+	 }
+</style>
+
+<div class="" style="position: absolute; left: 0%; top: 94%; height: 6%; width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center" >
+
+<img src="LUG/2024-02-12/systemd-logo.png" alt="" style="object-fit: scale-down" class="logo-background">
+
+
+<img src="LUG/2024-02-12/systemd-logo.png" alt="" style="z-index: 1000; object-fit: scale-down">
+
+</div>
+<div class="" style="position: absolute; left: 0%; top: 0%; height: 6%; width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center" >
+
+https://github.com/Taar/systemd-podman-quadlet-workshop<!-- .element: class="workshop-link" -->
+</div>
+</div></script></section><section  data-markdown><script type="text/template"><!-- .slide: class="drop" -->
+<div class="" style="position: absolute; left: 0px; top: 0px; height: 700px; width: 960px; min-height: 700px; display: flex; flex-direction: column; align-items: center; justify-content: center" absolute="true">
+
+```systemd
+# ~/workshop-files/systemd/my-pictures/my-pictures.service
+
+[Service]
+Type=exec
+ExecStart=python3 ...
+StandardOutput=journal
+
+# `man systemd.service` & `man systemd.exec` to learn more
+```
+
+
+<style>
+	.logo-background{
+		background: #404040;
+		 filter: blur(14px);
+		 position: absolute;
+	}
+	 .workshop-link {
+		font-size: 0.5em;
+	 }
+</style>
+
+<div class="" style="position: absolute; left: 0%; top: 94%; height: 6%; width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center" >
+
+<img src="LUG/2024-02-12/systemd-logo.png" alt="" style="object-fit: scale-down" class="logo-background">
+
+
+<img src="LUG/2024-02-12/systemd-logo.png" alt="" style="z-index: 1000; object-fit: scale-down">
+
+</div>
+<div class="" style="position: absolute; left: 0%; top: 0%; height: 6%; width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center" >
+
+https://github.com/Taar/systemd-podman-quadlet-workshop<!-- .element: class="workshop-link" -->
+</div>
+</div></script></section><section  data-markdown><script type="text/template"><!-- .slide: class="drop" -->
+<div class="" style="position: absolute; left: 0px; top: 0px; height: 700px; width: 960px; min-height: 700px; display: flex; flex-direction: column; align-items: center; justify-content: center" absolute="true">
+
+### Install Section
+- &shy;<!-- .element: class="fragment" data-fragment-index="1" -->Starts with `[Install]`
+- &shy;<!-- .element: class="fragment" data-fragment-index="2" -->Section is optional
+- &shy;<!-- .element: class="fragment" data-fragment-index="3" -->Holds information about how to install the unit
+- &shy;<!-- .element: class="fragment" data-fragment-index="4" -->Used by `systemctl` `enable` and `disable` commands
+
+
+<style>
+	.logo-background{
+		background: #404040;
+		 filter: blur(14px);
+		 position: absolute;
+	}
+	 .workshop-link {
+		font-size: 0.5em;
+	 }
+</style>
+
+<div class="" style="position: absolute; left: 0%; top: 94%; height: 6%; width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center" >
+
+<img src="LUG/2024-02-12/systemd-logo.png" alt="" style="object-fit: scale-down" class="logo-background">
+
+
+<img src="LUG/2024-02-12/systemd-logo.png" alt="" style="z-index: 1000; object-fit: scale-down">
+
+</div>
+<div class="" style="position: absolute; left: 0%; top: 0%; height: 6%; width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center" >
+
+https://github.com/Taar/systemd-podman-quadlet-workshop<!-- .element: class="workshop-link" -->
+</div>
+</div></script></section><section  data-markdown><script type="text/template"><!-- .slide: class="drop" -->
+<div class="" style="position: absolute; left: 0px; top: 0px; height: 700px; width: 960px; min-height: 700px; display: flex; flex-direction: column; align-items: center; justify-content: center" absolute="true">
+
+### Install Options
+- &shy;<!-- .element: class="fragment" data-fragment-index="1" -->`WantedBy` - When the unit is *enabled*, a symbolic link is created within the service's `.wants` directory
+
+```systemd
+# ~/workshop-files/systemd/my-pictures/my-pictures.service
+
+[Install]
+WantedBy=default.target
+
+# `man systemd.unit` to learn more
+```
+<!-- .element: class="fragment" -->
+
+
+<style>
+	.logo-background{
+		background: #404040;
+		 filter: blur(14px);
+		 position: absolute;
+	}
+	 .workshop-link {
+		font-size: 0.5em;
+	 }
+</style>
+
+<div class="" style="position: absolute; left: 0%; top: 94%; height: 6%; width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center" >
+
+<img src="LUG/2024-02-12/systemd-logo.png" alt="" style="object-fit: scale-down" class="logo-background">
+
+
+<img src="LUG/2024-02-12/systemd-logo.png" alt="" style="z-index: 1000; object-fit: scale-down">
+
+</div>
+<div class="" style="position: absolute; left: 0%; top: 0%; height: 6%; width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center" >
+
+https://github.com/Taar/systemd-podman-quadlet-workshop<!-- .element: class="workshop-link" -->
+</div>
+</div></script></section><section  data-markdown><script type="text/template"><!-- .slide: class="drop" -->
+<div class="" style="position: absolute; left: 0px; top: 0px; height: 700px; width: 960px; min-height: 700px; display: flex; flex-direction: column; align-items: center; justify-content: center" absolute="true">
+
+Options like `WantedBy` allow for units to *hook into* the start-up of other units **without** having to modify their unit configuration
+
+
+<style>
+	.logo-background{
+		background: #404040;
+		 filter: blur(14px);
+		 position: absolute;
+	}
+	 .workshop-link {
+		font-size: 0.5em;
+	 }
+</style>
+
+<div class="" style="position: absolute; left: 0%; top: 94%; height: 6%; width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center" >
+
+<img src="LUG/2024-02-12/systemd-logo.png" alt="" style="object-fit: scale-down" class="logo-background">
+
+
+<img src="LUG/2024-02-12/systemd-logo.png" alt="" style="z-index: 1000; object-fit: scale-down">
+
+</div>
+<div class="" style="position: absolute; left: 0%; top: 0%; height: 6%; width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center" >
+
+https://github.com/Taar/systemd-podman-quadlet-workshop<!-- .element: class="workshop-link" -->
+</div>
+</div></script></section><section  data-markdown><script type="text/template"><!-- .slide: class="drop" -->
+<div class="" style="position: absolute; left: 0px; top: 0px; height: 700px; width: 960px; min-height: 700px; display: flex; flex-direction: column; align-items: center; justify-content: center" absolute="true">
+
+### `default.target`
+
+The default unit systemd starts at bootup
+
+> `default.target` is aliased to either `multi-user.target` or `graphical.target` 
+
+
+
+<style>
+	.logo-background{
+		background: #404040;
+		 filter: blur(14px);
+		 position: absolute;
+	}
+	 .workshop-link {
+		font-size: 0.5em;
+	 }
+</style>
+
+<div class="" style="position: absolute; left: 0%; top: 94%; height: 6%; width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center" >
+
+<img src="LUG/2024-02-12/systemd-logo.png" alt="" style="object-fit: scale-down" class="logo-background">
+
+
+<img src="LUG/2024-02-12/systemd-logo.png" alt="" style="z-index: 1000; object-fit: scale-down">
+
+</div>
+<div class="" style="position: absolute; left: 0%; top: 0%; height: 6%; width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center" >
+
+https://github.com/Taar/systemd-podman-quadlet-workshop<!-- .element: class="workshop-link" -->
+</div>
+</div></script></section><section  data-markdown><script type="text/template"><!-- .slide: class="drop" -->
+<div class="" style="position: absolute; left: 0px; top: 0px; height: 700px; width: 960px; min-height: 700px; display: flex; flex-direction: column; align-items: center; justify-content: center" absolute="true">
+
+Therefore, any unit with `WantedBy=default.target` will be started at bootup **if** the unit is `enabled`
+
+
+<style>
+	.logo-background{
+		background: #404040;
+		 filter: blur(14px);
+		 position: absolute;
+	}
+	 .workshop-link {
+		font-size: 0.5em;
+	 }
+</style>
+
+<div class="" style="position: absolute; left: 0%; top: 94%; height: 6%; width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center" >
+
+<img src="LUG/2024-02-12/systemd-logo.png" alt="" style="object-fit: scale-down" class="logo-background">
+
+
+<img src="LUG/2024-02-12/systemd-logo.png" alt="" style="z-index: 1000; object-fit: scale-down">
+
+</div>
+<div class="" style="position: absolute; left: 0%; top: 0%; height: 6%; width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center" >
+
+https://github.com/Taar/systemd-podman-quadlet-workshop<!-- .element: class="workshop-link" -->
+</div>
+</div></script></section><section  data-markdown><script type="text/template"><!-- .slide: class="drop" -->
+<div class="" style="position: absolute; left: 0px; top: 0px; height: 700px; width: 960px; min-height: 700px; display: flex; flex-direction: column; align-items: center; justify-content: center" absolute="true">
+
+```bash
+systemctl --user enable podman.service
+
+# Created symlink
+# .../systemd/user/default.target.wants/podman.service
+# → /usr/lib/systemd/user/podman.service.
+```
+
+```
+# podman.service
+
+[Install]
+WantedBy=default.target
+```
+
+```bash
+ls -a ~/.config/systemd/user/default.target.wants | grep podman
+
+# podman.service -> /usr/lib/systemd/user/podman.service
+```
+
+<style>
+	.logo-background{
+		background: #404040;
+		 filter: blur(14px);
+		 position: absolute;
+	}
+	 .workshop-link {
+		font-size: 0.5em;
+	 }
+</style>
+
+<div class="" style="position: absolute; left: 0%; top: 94%; height: 6%; width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center" >
+
+<img src="LUG/2024-02-12/systemd-logo.png" alt="" style="object-fit: scale-down" class="logo-background">
+
+
+<img src="LUG/2024-02-12/systemd-logo.png" alt="" style="z-index: 1000; object-fit: scale-down">
+
+</div>
+<div class="" style="position: absolute; left: 0%; top: 0%; height: 6%; width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center" >
+
+https://github.com/Taar/systemd-podman-quadlet-workshop<!-- .element: class="workshop-link" -->
+</div>
+</div></script></section><section  data-markdown><script type="text/template"><!-- .slide: class="drop" -->
+<div class="" style="position: absolute; left: 0px; top: 0px; height: 700px; width: 960px; min-height: 700px; display: flex; flex-direction: column; align-items: center; justify-content: center" absolute="true">
+
+```bash
+systemctl --user disable podman.service
+
+# Removes the sym link created by the enable command
+```
+
+
+<style>
+	.logo-background{
+		background: #404040;
+		 filter: blur(14px);
+		 position: absolute;
+	}
+	 .workshop-link {
+		font-size: 0.5em;
+	 }
+</style>
+
+<div class="" style="position: absolute; left: 0%; top: 94%; height: 6%; width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center" >
+
+<img src="LUG/2024-02-12/systemd-logo.png" alt="" style="object-fit: scale-down" class="logo-background">
+
+
+<img src="LUG/2024-02-12/systemd-logo.png" alt="" style="z-index: 1000; object-fit: scale-down">
+
+</div>
+<div class="" style="position: absolute; left: 0%; top: 0%; height: 6%; width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center" >
+
+https://github.com/Taar/systemd-podman-quadlet-workshop<!-- .element: class="workshop-link" -->
+</div>
+</div></script></section><section  data-markdown><script type="text/template"><!-- .slide: class="drop" -->
+<div class="" style="position: absolute; left: 0px; top: 0px; height: 700px; width: 960px; min-height: 700px; display: flex; flex-direction: column; align-items: center; justify-content: center" absolute="true">
+
+### Important!
+
+Units that don't have an `[Install]` section **cannot** be `enabled` nor `disabled`
+
+
+<style>
+	.logo-background{
+		background: #404040;
+		 filter: blur(14px);
+		 position: absolute;
+	}
+	 .workshop-link {
+		font-size: 0.5em;
+	 }
+</style>
+
+<div class="" style="position: absolute; left: 0%; top: 94%; height: 6%; width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center" >
+
+<img src="LUG/2024-02-12/systemd-logo.png" alt="" style="object-fit: scale-down" class="logo-background">
+
+
+<img src="LUG/2024-02-12/systemd-logo.png" alt="" style="z-index: 1000; object-fit: scale-down">
+
+</div>
+<div class="" style="position: absolute; left: 0%; top: 0%; height: 6%; width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center" >
+
+https://github.com/Taar/systemd-podman-quadlet-workshop<!-- .element: class="workshop-link" -->
+</div>
+</div></script></section><section  data-markdown><script type="text/template"><!-- .slide: class="drop" -->
+<div class="" style="position: absolute; left: 0px; top: 0px; height: 700px; width: 960px; min-height: 700px; display: flex; flex-direction: column; align-items: center; justify-content: center" absolute="true">
+
+Open the file below in your text editor of choice
+
+`~/workshop-files/systemd/my-pictures/my-pictures.service`
+
+
+<style>
+	.logo-background{
+		background: #404040;
+		 filter: blur(14px);
+		 position: absolute;
+	}
+	 .workshop-link {
+		font-size: 0.5em;
+	 }
+</style>
+
+<div class="" style="position: absolute; left: 0%; top: 94%; height: 6%; width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center" >
+
+<img src="LUG/2024-02-12/systemd-logo.png" alt="" style="object-fit: scale-down" class="logo-background">
+
+
+<img src="LUG/2024-02-12/systemd-logo.png" alt="" style="z-index: 1000; object-fit: scale-down">
+
+</div>
+<div class="" style="position: absolute; left: 0%; top: 0%; height: 6%; width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center" >
+
+https://github.com/Taar/systemd-podman-quadlet-workshop<!-- .element: class="workshop-link" -->
+</div>
+</div></script></section><section  data-markdown><script type="text/template"><!-- .slide: class="drop" -->
+<div class="" style="position: absolute; left: 0px; top: 0px; height: 700px; width: 960px; min-height: 700px; display: flex; flex-direction: column; align-items: center; justify-content: center" absolute="true">
+
+Check for `python3` using the following command:
+
+`which python3`
+
+> Feel free to change the `ExecStart` value to something like `sleep infinity` if you don't have `python3` or don't want to run the web server
+
+
+<style>
+	.logo-background{
+		background: #404040;
+		 filter: blur(14px);
+		 position: absolute;
+	}
+	 .workshop-link {
+		font-size: 0.5em;
+	 }
+</style>
+
+<div class="" style="position: absolute; left: 0%; top: 94%; height: 6%; width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center" >
+
+<img src="LUG/2024-02-12/systemd-logo.png" alt="" style="object-fit: scale-down" class="logo-background">
+
+
+<img src="LUG/2024-02-12/systemd-logo.png" alt="" style="z-index: 1000; object-fit: scale-down">
+
+</div>
+<div class="" style="position: absolute; left: 0%; top: 0%; height: 6%; width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center" >
+
+https://github.com/Taar/systemd-podman-quadlet-workshop<!-- .element: class="workshop-link" -->
+</div>
+</div></script></section><section  data-markdown><script type="text/template"><!-- .slide: class="drop" -->
+<div class="" style="position: absolute; left: 0px; top: 0px; height: 700px; width: 960px; min-height: 700px; display: flex; flex-direction: column; align-items: center; justify-content: center" absolute="true">
+
+Open the file below in your text editor of choice
+
+`~/workshop-files/systemd/my-pictures/my-pictures-create-dir.service`
+
+
+<style>
+	.logo-background{
+		background: #404040;
+		 filter: blur(14px);
+		 position: absolute;
+	}
+	 .workshop-link {
+		font-size: 0.5em;
+	 }
+</style>
+
+<div class="" style="position: absolute; left: 0%; top: 94%; height: 6%; width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center" >
+
+<img src="LUG/2024-02-12/systemd-logo.png" alt="" style="object-fit: scale-down" class="logo-background">
+
+
+<img src="LUG/2024-02-12/systemd-logo.png" alt="" style="z-index: 1000; object-fit: scale-down">
+
+</div>
+<div class="" style="position: absolute; left: 0%; top: 0%; height: 6%; width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center" >
+
+https://github.com/Taar/systemd-podman-quadlet-workshop<!-- .element: class="workshop-link" -->
+</div>
+</div></script></section><section  data-markdown><script type="text/template"><!-- .slide: class="drop" -->
+<div class="" style="position: absolute; left: 0px; top: 0px; height: 700px; width: 960px; min-height: 700px; display: flex; flex-direction: column; align-items: center; justify-content: center" absolute="true">
+
+Please *review* the contents of the provided scripts *before executing* them!
+
+Use `cat` or open them if your text editor of choice.
+
+
+<style>
+	.logo-background{
+		background: #404040;
+		 filter: blur(14px);
+		 position: absolute;
+	}
+	 .workshop-link {
+		font-size: 0.5em;
+	 }
+</style>
+
+<div class="" style="position: absolute; left: 0%; top: 94%; height: 6%; width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center" >
+
+<img src="LUG/2024-02-12/systemd-logo.png" alt="" style="object-fit: scale-down" class="logo-background">
+
+
+<img src="LUG/2024-02-12/systemd-logo.png" alt="" style="z-index: 1000; object-fit: scale-down">
+
+</div>
+<div class="" style="position: absolute; left: 0%; top: 0%; height: 6%; width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center" >
+
+https://github.com/Taar/systemd-podman-quadlet-workshop<!-- .element: class="workshop-link" -->
+</div>
+</div></script></section><section  data-markdown><script type="text/template"><!-- .slide: class="drop" -->
+<div class="" style="position: absolute; left: 0px; top: 0px; height: 700px; width: 960px; min-height: 700px; display: flex; flex-direction: column; align-items: center; justify-content: center" absolute="true">
+
+### Where to Place User Unit Configuration
+
+- &shy;<!-- .element: class="fragment" data-fragment-index="1" -->`$XDG_CONFIG_HOME/systemd/user` if `$XDG_CONFIG_HOME` is set
+- &shy;<!-- .element: class="fragment" data-fragment-index="2" -->Otherwise uses `~/.config/systemd/user`
+
+
+<style>
+	.logo-background{
+		background: #404040;
+		 filter: blur(14px);
+		 position: absolute;
+	}
+	 .workshop-link {
+		font-size: 0.5em;
+	 }
+</style>
+
+<div class="" style="position: absolute; left: 0%; top: 94%; height: 6%; width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center" >
+
+<img src="LUG/2024-02-12/systemd-logo.png" alt="" style="object-fit: scale-down" class="logo-background">
+
+
+<img src="LUG/2024-02-12/systemd-logo.png" alt="" style="z-index: 1000; object-fit: scale-down">
+
+</div>
+<div class="" style="position: absolute; left: 0%; top: 0%; height: 6%; width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center" >
+
+https://github.com/Taar/systemd-podman-quadlet-workshop<!-- .element: class="workshop-link" -->
+</div>
+</div></script></section><section  data-markdown><script type="text/template"><!-- .slide: class="drop" -->
+<div class="" style="position: absolute; left: 0px; top: 0px; height: 700px; width: 960px; min-height: 700px; display: flex; flex-direction: column; align-items: center; justify-content: center" absolute="true">
+
+## Check Paths
+
+```bash
+# Shows information on where to store configuration
+cd ~/workshop-files
+
+cat ./xdg-path.sh
+
+./xdg-paths.sh
+```
+
+```bash
+# Makes sure the config directory exists
+
+cat ./create-config-dir.sh
+
+./create-config-dir.sh
+```
+
+
+<style>
+	.logo-background{
+		background: #404040;
+		 filter: blur(14px);
+		 position: absolute;
+	}
+	 .workshop-link {
+		font-size: 0.5em;
+	 }
+</style>
+
+<div class="" style="position: absolute; left: 0%; top: 94%; height: 6%; width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center" >
+
+<img src="LUG/2024-02-12/systemd-logo.png" alt="" style="object-fit: scale-down" class="logo-background">
+
+
+<img src="LUG/2024-02-12/systemd-logo.png" alt="" style="z-index: 1000; object-fit: scale-down">
+
+</div>
+<div class="" style="position: absolute; left: 0%; top: 0%; height: 6%; width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center" >
+
+https://github.com/Taar/systemd-podman-quadlet-workshop<!-- .element: class="workshop-link" -->
+</div>
+</div></script></section><section  data-markdown><script type="text/template"><!-- .slide: class="drop" -->
+<div class="" style="position: absolute; left: 0px; top: 0px; height: 700px; width: 960px; min-height: 700px; display: flex; flex-direction: column; align-items: center; justify-content: center" absolute="true">
+
+```bash
+# Links our service config so that systemd can load them
+cd ~/workshop-files/systemd/my-pictures
+
+cat ./link-units.sh
+
+./link-units.sh
+```
+
+```bash
+systemctl --user daemon-reload
+```
+
+```bash
+systemctl --user list-unit-files
+```
+
+
+<style>
+	.logo-background{
+		background: #404040;
+		 filter: blur(14px);
+		 position: absolute;
+	}
+	 .workshop-link {
+		font-size: 0.5em;
+	 }
+</style>
+
+<div class="" style="position: absolute; left: 0%; top: 94%; height: 6%; width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center" >
+
+<img src="LUG/2024-02-12/systemd-logo.png" alt="" style="object-fit: scale-down" class="logo-background">
+
+
+<img src="LUG/2024-02-12/systemd-logo.png" alt="" style="z-index: 1000; object-fit: scale-down">
+
+</div>
+<div class="" style="position: absolute; left: 0%; top: 0%; height: 6%; width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center" >
+
+https://github.com/Taar/systemd-podman-quadlet-workshop<!-- .element: class="workshop-link" -->
+</div>
+</div></script></section><section  data-markdown><script type="text/template"><!-- .slide: class="drop" -->
+<div class="" style="position: absolute; left: 0px; top: 0px; height: 700px; width: 960px; min-height: 700px; display: flex; flex-direction: column; align-items: center; justify-content: center" absolute="true">
+
+```bash
+# Reload just loads the config, it doesn't start services
+
+systemctl --user status my-pictures
+# inactive (dead)
+```
+
+```bash
+systemctl --user start my-pictures
+```
+
+```bash
+systemctl --user status my-pictures
+# active (running)
+```
+
+
+<style>
+	.logo-background{
+		background: #404040;
+		 filter: blur(14px);
+		 position: absolute;
+	}
+	 .workshop-link {
+		font-size: 0.5em;
+	 }
+</style>
+
+<div class="" style="position: absolute; left: 0%; top: 94%; height: 6%; width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center" >
+
+<img src="LUG/2024-02-12/systemd-logo.png" alt="" style="object-fit: scale-down" class="logo-background">
+
+
+<img src="LUG/2024-02-12/systemd-logo.png" alt="" style="z-index: 1000; object-fit: scale-down">
+
+</div>
+<div class="" style="position: absolute; left: 0%; top: 0%; height: 6%; width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center" >
+
+https://github.com/Taar/systemd-podman-quadlet-workshop<!-- .element: class="workshop-link" -->
+</div>
+</div></script></section><section  data-markdown><script type="text/template"><!-- .slide: class="drop" -->
+<div class="" style="position: absolute; left: 0px; top: 0px; height: 700px; width: 960px; min-height: 700px; display: flex; flex-direction: column; align-items: center; justify-content: center" absolute="true">
+
+```bash
+systemctl --user status my-pictures-create-dir
+# active (running)
+# State is "linked"
+
+cat ./copy-public.sh
+
+./copy-public.sh
+
+# Navigate to http://localhost:8080 within your browser of choice
+# or run `xdg-open http://localhost:8080`
+```
+
+
+<style>
+	.logo-background{
+		background: #404040;
+		 filter: blur(14px);
+		 position: absolute;
+	}
+	 .workshop-link {
+		font-size: 0.5em;
+	 }
+</style>
+
+<div class="" style="position: absolute; left: 0%; top: 94%; height: 6%; width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center" >
+
+<img src="LUG/2024-02-12/systemd-logo.png" alt="" style="object-fit: scale-down" class="logo-background">
+
+
+<img src="LUG/2024-02-12/systemd-logo.png" alt="" style="z-index: 1000; object-fit: scale-down">
+
+</div>
+<div class="" style="position: absolute; left: 0%; top: 0%; height: 6%; width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center" >
+
+https://github.com/Taar/systemd-podman-quadlet-workshop<!-- .element: class="workshop-link" -->
+</div>
+</div></script></section><section  data-markdown><script type="text/template"><!-- .slide: class="drop" -->
+<div class="" style="position: absolute; left: 0px; top: 0px; height: 700px; width: 960px; min-height: 700px; display: flex; flex-direction: column; align-items: center; justify-content: center" absolute="true">
+
+## Challenge!
+
+- &shy;<!-- .element: class="fragment" data-fragment-index="1" -->Create a `.service` with the `Type` of `oneshot` that will automatically copy pictures to the directory created by `my-pictures-create-dir.service`
+- &shy;<!-- .element: class="fragment" data-fragment-index="2" -->Hint! You'll need to use `Wants` and `After`
+- &shy;<!-- .element: class="fragment" data-fragment-index="3" -->Bonus! Maybe the `.path` unit could be useful here
+
+
+<style>
+	.logo-background{
+		background: #404040;
+		 filter: blur(14px);
+		 position: absolute;
+	}
+	 .workshop-link {
+		font-size: 0.5em;
+	 }
+</style>
+
+<div class="" style="position: absolute; left: 0%; top: 94%; height: 6%; width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center" >
+
+<img src="LUG/2024-02-12/systemd-logo.png" alt="" style="object-fit: scale-down" class="logo-background">
+
+
+<img src="LUG/2024-02-12/systemd-logo.png" alt="" style="z-index: 1000; object-fit: scale-down">
+
+</div>
+<div class="" style="position: absolute; left: 0%; top: 0%; height: 6%; width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center" >
+
+https://github.com/Taar/systemd-podman-quadlet-workshop<!-- .element: class="workshop-link" -->
+</div>
+</div></script></section><section  data-markdown><script type="text/template"><!-- .slide: class="drop" -->
+<div class="" style="position: absolute; left: 0px; top: 0px; height: 700px; width: 960px; min-height: 700px; display: flex; flex-direction: column; align-items: center; justify-content: center" absolute="true">
+
+### Enable & Disable Commands
+
+Units *do not* have an `[Install]` section *cannot* be `enabled` nor `disabled`
+
+```bash
+systemctl --user enable my-pictures-create-dir
+# Error!
+```
+<!-- .element: class="fragment" -->
+</div></script></section><section  data-markdown><script type="text/template"><!-- .slide: class="drop" -->
+<div class="" style="position: absolute; left: 0px; top: 0px; height: 700px; width: 960px; min-height: 700px; display: flex; flex-direction: column; align-items: center; justify-content: center" absolute="true">
+
+### Enable the Service
+
+```bash
+systemctl --user enable my-pictures
+
+# Creates a symbolic link within the
+# default.targets.wants directory
+```
+
+
+<style>
+	.logo-background{
+		background: #404040;
+		 filter: blur(14px);
+		 position: absolute;
+	}
+	 .workshop-link {
+		font-size: 0.5em;
+	 }
+</style>
+
+<div class="" style="position: absolute; left: 0%; top: 94%; height: 6%; width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center" >
+
+<img src="LUG/2024-02-12/systemd-logo.png" alt="" style="object-fit: scale-down" class="logo-background">
+
+
+<img src="LUG/2024-02-12/systemd-logo.png" alt="" style="z-index: 1000; object-fit: scale-down">
+
+</div>
+<div class="" style="position: absolute; left: 0%; top: 0%; height: 6%; width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center" >
+
+https://github.com/Taar/systemd-podman-quadlet-workshop<!-- .element: class="workshop-link" -->
+</div>
+</div></script></section><section  data-markdown><script type="text/template"><!-- .slide: class="drop" -->
+<div class="" style="position: absolute; left: 0px; top: 0px; height: 700px; width: 960px; min-height: 700px; display: flex; flex-direction: column; align-items: center; justify-content: center" absolute="true">
+
+### Disable a Unit
+```bash
+# Stop the unit before we disable it
+
+systemctl --user stop my-pictures
+```
+
+```bash
+systemctl --user disable my-pictures
+# Removes the symlink(s) we created
+```
+
+```bash
+systemctl --user status my-pictures
+# Unit my-pictures.service could not be found.
+```
+
+
+<style>
+	.logo-background{
+		background: #404040;
+		 filter: blur(14px);
+		 position: absolute;
+	}
+	 .workshop-link {
+		font-size: 0.5em;
+	 }
+</style>
+
+<div class="" style="position: absolute; left: 0%; top: 94%; height: 6%; width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center" >
+
+<img src="LUG/2024-02-12/systemd-logo.png" alt="" style="object-fit: scale-down" class="logo-background">
+
+
+<img src="LUG/2024-02-12/systemd-logo.png" alt="" style="z-index: 1000; object-fit: scale-down">
+
+</div>
+<div class="" style="position: absolute; left: 0%; top: 0%; height: 6%; width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center" >
+
+https://github.com/Taar/systemd-podman-quadlet-workshop<!-- .element: class="workshop-link" -->
+</div>
+</div></script></section><section  data-markdown><script type="text/template"><!-- .slide: class="drop" -->
+<div class="" style="position: absolute; left: 0px; top: 0px; height: 700px; width: 960px; min-height: 700px; display: flex; flex-direction: column; align-items: center; justify-content: center" absolute="true">
+
+*Because* we **linked** a unit, `systemctl` will remove that link if `disabled`
+
+
+<style>
+	.logo-background{
+		background: #404040;
+		 filter: blur(14px);
+		 position: absolute;
+	}
+	 .workshop-link {
+		font-size: 0.5em;
+	 }
+</style>
+
+<div class="" style="position: absolute; left: 0%; top: 94%; height: 6%; width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center" >
+
+<img src="LUG/2024-02-12/systemd-logo.png" alt="" style="object-fit: scale-down" class="logo-background">
+
+
+<img src="LUG/2024-02-12/systemd-logo.png" alt="" style="z-index: 1000; object-fit: scale-down">
+
+</div>
+<div class="" style="position: absolute; left: 0%; top: 0%; height: 6%; width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center" >
+
+https://github.com/Taar/systemd-podman-quadlet-workshop<!-- .element: class="workshop-link" -->
+</div>
+</div></script></section><section  data-markdown><script type="text/template"><!-- .slide: class="drop" -->
+<div class="" style="position: absolute; left: 0px; top: 0px; height: 700px; width: 960px; min-height: 700px; display: flex; flex-direction: column; align-items: center; justify-content: center" absolute="true">
+
+```bash
+# Let's see what happens if we use a hard link instead
+# You can also copy the file if you'd prefer
+cd ~/workshop-files/systemd/my-pictures
+
+cat ./hard-link-unit.sh
+
+./hard-link-unit.sh
+```
+
+```bash
+systemctl --user daemon-reload
+```
+
+
+<style>
+	.logo-background{
+		background: #404040;
+		 filter: blur(14px);
+		 position: absolute;
+	}
+	 .workshop-link {
+		font-size: 0.5em;
+	 }
+</style>
+
+<div class="" style="position: absolute; left: 0%; top: 94%; height: 6%; width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center" >
+
+<img src="LUG/2024-02-12/systemd-logo.png" alt="" style="object-fit: scale-down" class="logo-background">
+
+
+<img src="LUG/2024-02-12/systemd-logo.png" alt="" style="z-index: 1000; object-fit: scale-down">
+
+</div>
+<div class="" style="position: absolute; left: 0%; top: 0%; height: 6%; width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center" >
+
+https://github.com/Taar/systemd-podman-quadlet-workshop<!-- .element: class="workshop-link" -->
+</div>
+</div></script></section><section  data-markdown><script type="text/template"><!-- .slide: class="drop" -->
+<div class="" style="position: absolute; left: 0px; top: 0px; height: 700px; width: 960px; min-height: 700px; display: flex; flex-direction: column; align-items: center; justify-content: center" absolute="true">
+
+```bash
+systemctl --user enable my-pictures
+# Create a symlink to inside of default.target.wants directory
+```
+
+```bash
+systemctl --user disable my-pictures
+# Removes the symlink from default.target.wants directory
+```
+
+```bash
+systemctl --user status my-pictures
+# Errored before, now it doesn't!
+```
+
+```bash
+systemctl --user list-unit-files
+```
+
+
+<style>
+	.logo-background{
+		background: #404040;
+		 filter: blur(14px);
+		 position: absolute;
+	}
+	 .workshop-link {
+		font-size: 0.5em;
+	 }
+</style>
+
+<div class="" style="position: absolute; left: 0%; top: 94%; height: 6%; width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center" >
+
+<img src="LUG/2024-02-12/systemd-logo.png" alt="" style="object-fit: scale-down" class="logo-background">
+
+
+<img src="LUG/2024-02-12/systemd-logo.png" alt="" style="z-index: 1000; object-fit: scale-down">
+
+</div>
+<div class="" style="position: absolute; left: 0%; top: 0%; height: 6%; width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center" >
+
+https://github.com/Taar/systemd-podman-quadlet-workshop<!-- .element: class="workshop-link" -->
+</div>
+</div></script></section><section  data-markdown><script type="text/template"><!-- .slide: class="drop" -->
+<div class="" style="position: absolute; left: 0px; top: 0px; height: 700px; width: 960px; min-height: 700px; display: flex; flex-direction: column; align-items: center; justify-content: center" absolute="true">
+
+## Linked Units
+
+If the unit's state is **linked** then disabling it will *remove* the link.
+<!-- .element: class="fragment" -->
+
+Therefore, if you want to `enable` & `disable` a unit use a *hard link* instead of a *symbolic link*
+<!-- .element: class="fragment" -->
+
+
+<style>
+	.logo-background{
+		background: #404040;
+		 filter: blur(14px);
+		 position: absolute;
+	}
+	 .workshop-link {
+		font-size: 0.5em;
+	 }
+</style>
+
+<div class="" style="position: absolute; left: 0%; top: 94%; height: 6%; width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center" >
+
+<img src="LUG/2024-02-12/systemd-logo.png" alt="" style="object-fit: scale-down" class="logo-background">
+
+
+<img src="LUG/2024-02-12/systemd-logo.png" alt="" style="z-index: 1000; object-fit: scale-down">
+
+</div>
+<div class="" style="position: absolute; left: 0%; top: 0%; height: 6%; width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center" >
+
+https://github.com/Taar/systemd-podman-quadlet-workshop<!-- .element: class="workshop-link" -->
+</div>
+</div></script></section><section  data-markdown><script type="text/template"><!-- .slide: class="drop" -->
+<div class="" style="position: absolute; left: 0px; top: 0px; height: 700px; width: 960px; min-height: 700px; display: flex; flex-direction: column; align-items: center; justify-content: center" absolute="true">
+
+## More Examples!
+
+There are additional examples within the `systemd` directory that expand on the concepts learned today.
+
+
+<style>
+	.logo-background{
+		background: #404040;
+		 filter: blur(14px);
+		 position: absolute;
+	}
+	 .workshop-link {
+		font-size: 0.5em;
+	 }
+</style>
+
+<div class="" style="position: absolute; left: 0%; top: 94%; height: 6%; width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center" >
+
+<img src="LUG/2024-02-12/systemd-logo.png" alt="" style="object-fit: scale-down" class="logo-background">
+
+
+<img src="LUG/2024-02-12/systemd-logo.png" alt="" style="z-index: 1000; object-fit: scale-down">
+
+</div>
+<div class="" style="position: absolute; left: 0%; top: 0%; height: 6%; width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center" >
+
+https://github.com/Taar/systemd-podman-quadlet-workshop<!-- .element: class="workshop-link" -->
+</div>
+</div></script></section><section  data-markdown><script type="text/template"><!-- .slide: class="drop" -->
+<div class="" style="position: absolute; left: 0px; top: 0px; height: 700px; width: 960px; min-height: 700px; display: flex; flex-direction: column; align-items: center; justify-content: center" absolute="true">
+
+### What is Podman Quadlet?
+
+It's a **systemd generator** that makes *starting* and *managing* containers using **systemd** a lot simpler
+
+Without **Podman Quadlet** all the unit configuration would have to be created manually
+
+
+<style>
+	.logo-podman-background{
+		background: #CBCBC8;
+		 filter: blur(14px);
+		 position: absolute;
+	}
+	 .workshop-link {
+		font-size: 0.5em;
+	 }
+</style>
+
+<div class="" style="position: absolute; left: 0%; top: 94%; height: 6%; width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center" >
+
+<img src="LUG/2024-02-12/podman-logo.png" alt="" style="object-fit: scale-down" class="logo-podman-background">
+
+
+<img src="LUG/2024-02-12/podman-logo.png" alt="" style="z-index: 1000; object-fit: scale-down">
+
+</div>
+<div class="" style="position: absolute; left: 0%; top: 0%; height: 6%; width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center" >
+
+https://github.com/Taar/systemd-podman-quadlet-workshop<!-- .element: class="workshop-link" -->
+</div>
+</div></script></section><section  data-markdown><script type="text/template"><!-- .slide: class="drop" -->
+<div class="" style="position: absolute; left: 0px; top: 0px; height: 700px; width: 960px; min-height: 700px; display: flex; flex-direction: column; align-items: center; justify-content: center" absolute="true">
+
+### What is a systemd Generator?
+
+Generators are **small executables** that **systemd** executes *during bootup* and when configuration is *reloaded*
+
+When executed, they *convert configuration* into dynamically **generated unit files**.
+
+
+<style>
+	.logo-background{
+		background: #404040;
+		 filter: blur(14px);
+		 position: absolute;
+	}
+	 .workshop-link {
+		font-size: 0.5em;
+	 }
+</style>
+
+<div class="" style="position: absolute; left: 0%; top: 94%; height: 6%; width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center" >
+
+<img src="LUG/2024-02-12/systemd-logo.png" alt="" style="object-fit: scale-down" class="logo-background">
+
+
+<img src="LUG/2024-02-12/systemd-logo.png" alt="" style="z-index: 1000; object-fit: scale-down">
+
+</div>
+<div class="" style="position: absolute; left: 0%; top: 0%; height: 6%; width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center" >
+
+https://github.com/Taar/systemd-podman-quadlet-workshop<!-- .element: class="workshop-link" -->
+</div>
+</div></script></section><section  data-markdown><script type="text/template"><!-- .slide: class="drop" -->
+<div class="" style="position: absolute; left: 0px; top: 0px; height: 700px; width: 960px; min-height: 700px; display: flex; flex-direction: column; align-items: center; justify-content: center" absolute="true">
+
+### Podman Quadlet Configuration
+
+Quadlet uses the *same configuration as systemd unit file* with the addition of *new sections*
+
+
+<style>
+	.logo-podman-background{
+		background: #CBCBC8;
+		 filter: blur(14px);
+		 position: absolute;
+	}
+	 .workshop-link {
+		font-size: 0.5em;
+	 }
+</style>
+
+<div class="" style="position: absolute; left: 0%; top: 94%; height: 6%; width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center" >
+
+<img src="LUG/2024-02-12/podman-logo.png" alt="" style="object-fit: scale-down" class="logo-podman-background">
+
+
+<img src="LUG/2024-02-12/podman-logo.png" alt="" style="z-index: 1000; object-fit: scale-down">
+
+</div>
+<div class="" style="position: absolute; left: 0%; top: 0%; height: 6%; width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center" >
+
+https://github.com/Taar/systemd-podman-quadlet-workshop<!-- .element: class="workshop-link" -->
+</div>
+</div></script></section><section  data-markdown><script type="text/template"><!-- .slide: class="drop" -->
+<div class="" style="position: absolute; left: 0px; top: 0px; height: 700px; width: 960px; min-height: 700px; display: flex; flex-direction: column; align-items: center; justify-content: center" absolute="true">
+
+### Quadlet Unit types
+
+- &shy;<!-- .element: class="fragment" data-fragment-index="1" -->`.container` > `[Container]`
+- &shy;<!-- .element: class="fragment" data-fragment-index="2" -->`.kube` > `[Kube]`
+- &shy;<!-- .element: class="fragment" data-fragment-index="3" -->`.network` > `[Network]`
+- &shy;<!-- .element: class="fragment" data-fragment-index="4" -->`.volume` > `[Volume]`
+- &shy;<!-- .element: class="fragment" data-fragment-index="5" -->`.image` > `[Image]`
+
+
+<style>
+	.logo-podman-background{
+		background: #CBCBC8;
+		 filter: blur(14px);
+		 position: absolute;
+	}
+	 .workshop-link {
+		font-size: 0.5em;
+	 }
+</style>
+
+<div class="" style="position: absolute; left: 0%; top: 94%; height: 6%; width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center" >
+
+<img src="LUG/2024-02-12/podman-logo.png" alt="" style="object-fit: scale-down" class="logo-podman-background">
+
+
+<img src="LUG/2024-02-12/podman-logo.png" alt="" style="z-index: 1000; object-fit: scale-down">
+
+</div>
+<div class="" style="position: absolute; left: 0%; top: 0%; height: 6%; width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center" >
+
+https://github.com/Taar/systemd-podman-quadlet-workshop<!-- .element: class="workshop-link" -->
+</div>
+</div></script></section><section  data-markdown><script type="text/template"><!-- .slide: class="drop" -->
+<div class="" style="position: absolute; left: 0px; top: 0px; height: 700px; width: 960px; min-height: 700px; display: flex; flex-direction: column; align-items: center; justify-content: center" absolute="true">
+
+### Service Type
+
+`.container` and `.kube` generate a **service** unit with the `Type` of `notify`
+
+`.network`, `.volume`, and `.image` generate a **service** unit with the `Type` of `oneshot`
+
+
+<style>
+	.logo-podman-background{
+		background: #CBCBC8;
+		 filter: blur(14px);
+		 position: absolute;
+	}
+	 .workshop-link {
+		font-size: 0.5em;
+	 }
+</style>
+
+<div class="" style="position: absolute; left: 0%; top: 94%; height: 6%; width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center" >
+
+<img src="LUG/2024-02-12/podman-logo.png" alt="" style="object-fit: scale-down" class="logo-podman-background">
+
+
+<img src="LUG/2024-02-12/podman-logo.png" alt="" style="z-index: 1000; object-fit: scale-down">
+
+</div>
+<div class="" style="position: absolute; left: 0%; top: 0%; height: 6%; width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center" >
+
+https://github.com/Taar/systemd-podman-quadlet-workshop<!-- .element: class="workshop-link" -->
+</div>
+</div></script></section><section  data-markdown><script type="text/template"><!-- .slide: class="drop" -->
+<div class="" style="position: absolute; left: 0px; top: 0px; height: 700px; width: 960px; min-height: 700px; display: flex; flex-direction: column; align-items: center; justify-content: center" absolute="true">
+
+### Enabling Containers
+
+**Generated** unit files *cannot* be `enabled` like regular unit files.
+
+Quadlet *parses* the `[Install]` section and *manually applies* the configuration.
+
+
+<style>
+	.logo-podman-background{
+		background: #CBCBC8;
+		 filter: blur(14px);
+		 position: absolute;
+	}
+	 .workshop-link {
+		font-size: 0.5em;
+	 }
+</style>
+
+<div class="" style="position: absolute; left: 0%; top: 94%; height: 6%; width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center" >
+
+<img src="LUG/2024-02-12/podman-logo.png" alt="" style="object-fit: scale-down" class="logo-podman-background">
+
+
+<img src="LUG/2024-02-12/podman-logo.png" alt="" style="z-index: 1000; object-fit: scale-down">
+
+</div>
+<div class="" style="position: absolute; left: 0%; top: 0%; height: 6%; width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center" >
+
+https://github.com/Taar/systemd-podman-quadlet-workshop<!-- .element: class="workshop-link" -->
+</div>
+</div></script></section><section  data-markdown><script type="text/template"><!-- .slide: class="drop" -->
+<div class="" style="position: absolute; left: 0px; top: 0px; height: 700px; width: 960px; min-height: 700px; display: flex; flex-direction: column; align-items: center; justify-content: center" absolute="true">
+
+> **Notice!** Only `Alias`, `WantedBy` and `RequiredBy` are supported as of `4.9.0`
+
+
+<style>
+	.logo-podman-background{
+		background: #CBCBC8;
+		 filter: blur(14px);
+		 position: absolute;
+	}
+	 .workshop-link {
+		font-size: 0.5em;
+	 }
+</style>
+
+<div class="" style="position: absolute; left: 0%; top: 94%; height: 6%; width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center" >
+
+<img src="LUG/2024-02-12/podman-logo.png" alt="" style="object-fit: scale-down" class="logo-podman-background">
+
+
+<img src="LUG/2024-02-12/podman-logo.png" alt="" style="z-index: 1000; object-fit: scale-down">
+
+</div>
+<div class="" style="position: absolute; left: 0%; top: 0%; height: 6%; width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center" >
+
+https://github.com/Taar/systemd-podman-quadlet-workshop<!-- .element: class="workshop-link" -->
+</div>
+</div></script></section><section  data-markdown><script type="text/template"><!-- .slide: class="drop" -->
+<div class="" style="position: absolute; left: 0px; top: 0px; height: 700px; width: 960px; min-height: 700px; display: flex; flex-direction: column; align-items: center; justify-content: center" absolute="true">
+
+```bash
+# ~/workshop-files
+
+cat ./create-containers-config-dir.sh
+
+./create-containers-config-dir.sh
+
+# ~/.config/containers/systemd
+# $XDG_CONFIG_HOME/containers/systemd
+```
+
+
+<style>
+	.logo-podman-background{
+		background: #CBCBC8;
+		 filter: blur(14px);
+		 position: absolute;
+	}
+	 .workshop-link {
+		font-size: 0.5em;
+	 }
+</style>
+
+<div class="" style="position: absolute; left: 0%; top: 94%; height: 6%; width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center" >
+
+<img src="LUG/2024-02-12/podman-logo.png" alt="" style="object-fit: scale-down" class="logo-podman-background">
+
+
+<img src="LUG/2024-02-12/podman-logo.png" alt="" style="z-index: 1000; object-fit: scale-down">
+
+</div>
+<div class="" style="position: absolute; left: 0%; top: 0%; height: 6%; width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center" >
+
+https://github.com/Taar/systemd-podman-quadlet-workshop<!-- .element: class="workshop-link" -->
+</div>
+</div></script></section><section  data-markdown><script type="text/template"><!-- .slide: class="drop" -->
+<div class="" style="position: absolute; left: 0px; top: 0px; height: 700px; width: 960px; min-height: 700px; display: flex; flex-direction: column; align-items: center; justify-content: center" absolute="true">
+
+```bash
+# Within the ~/workshop-files/quadlet/whoami directory
+
+cat ./link-units.sh
+
+./link-units.sh
+```
+
+```bash
+# Quadlet generates the unit files on reload
+
+systemctl --user daemon-reload
+```
+
+```bash
+systemctl --user list-unit-files
+```
+
+
+<style>
+	.logo-podman-background{
+		background: #CBCBC8;
+		 filter: blur(14px);
+		 position: absolute;
+	}
+	 .workshop-link {
+		font-size: 0.5em;
+	 }
+</style>
+
+<div class="" style="position: absolute; left: 0%; top: 94%; height: 6%; width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center" >
+
+<img src="LUG/2024-02-12/podman-logo.png" alt="" style="object-fit: scale-down" class="logo-podman-background">
+
+
+<img src="LUG/2024-02-12/podman-logo.png" alt="" style="z-index: 1000; object-fit: scale-down">
+
+</div>
+<div class="" style="position: absolute; left: 0%; top: 0%; height: 6%; width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center" >
+
+https://github.com/Taar/systemd-podman-quadlet-workshop<!-- .element: class="workshop-link" -->
+</div>
+</div></script></section><section  data-markdown><script type="text/template"><!-- .slide: class="drop" -->
+<div class="" style="position: absolute; left: 0px; top: 0px; height: 700px; width: 960px; min-height: 700px; display: flex; flex-direction: column; align-items: center; justify-content: center" absolute="true">
+
+```bash
+# Config it loaded but the service has not been started
+
+systemctl --user status whoami.service
+
+# whoami.service
+# whoami-network.service
+# whoami-image.service
+```
+
+```bash
+# Podman container command also doesn't list the
+# container as running
+
+podman container ls | grep whoami
+```
+
+
+<style>
+	.logo-podman-background{
+		background: #CBCBC8;
+		 filter: blur(14px);
+		 position: absolute;
+	}
+	 .workshop-link {
+		font-size: 0.5em;
+	 }
+</style>
+
+<div class="" style="position: absolute; left: 0%; top: 94%; height: 6%; width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center" >
+
+<img src="LUG/2024-02-12/podman-logo.png" alt="" style="object-fit: scale-down" class="logo-podman-background">
+
+
+<img src="LUG/2024-02-12/podman-logo.png" alt="" style="z-index: 1000; object-fit: scale-down">
+
+</div>
+<div class="" style="position: absolute; left: 0%; top: 0%; height: 6%; width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center" >
+
+https://github.com/Taar/systemd-podman-quadlet-workshop<!-- .element: class="workshop-link" -->
+</div>
+</div></script></section><section  data-markdown><script type="text/template"><!-- .slide: class="drop" -->
+<div class="" style="position: absolute; left: 0px; top: 0px; height: 700px; width: 960px; min-height: 700px; display: flex; flex-direction: column; align-items: center; justify-content: center" absolute="true">
+
+Open the file below in your text editor of choice
+
+`~/workshop-files/quadlet/whoami/whoami.network` 
+
+
+<style>
+	.logo-podman-background{
+		background: #CBCBC8;
+		 filter: blur(14px);
+		 position: absolute;
+	}
+	 .workshop-link {
+		font-size: 0.5em;
+	 }
+</style>
+
+<div class="" style="position: absolute; left: 0%; top: 94%; height: 6%; width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center" >
+
+<img src="LUG/2024-02-12/podman-logo.png" alt="" style="object-fit: scale-down" class="logo-podman-background">
+
+
+<img src="LUG/2024-02-12/podman-logo.png" alt="" style="z-index: 1000; object-fit: scale-down">
+
+</div>
+<div class="" style="position: absolute; left: 0%; top: 0%; height: 6%; width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center" >
+
+https://github.com/Taar/systemd-podman-quadlet-workshop<!-- .element: class="workshop-link" -->
+</div>
+</div></script></section><section  data-markdown><script type="text/template"><!-- .slide: class="drop" -->
+<div class="" style="position: absolute; left: 0px; top: 0px; height: 700px; width: 960px; min-height: 700px; display: flex; flex-direction: column; align-items: center; justify-content: center" absolute="true">
+
+Open the file below in your text editor of choice
+
+`~/workshop-files/quadlet/whoami/whoami.image` 
+
+
+<style>
+	.logo-podman-background{
+		background: #CBCBC8;
+		 filter: blur(14px);
+		 position: absolute;
+	}
+	 .workshop-link {
+		font-size: 0.5em;
+	 }
+</style>
+
+<div class="" style="position: absolute; left: 0%; top: 94%; height: 6%; width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center" >
+
+<img src="LUG/2024-02-12/podman-logo.png" alt="" style="object-fit: scale-down" class="logo-podman-background">
+
+
+<img src="LUG/2024-02-12/podman-logo.png" alt="" style="z-index: 1000; object-fit: scale-down">
+
+</div>
+<div class="" style="position: absolute; left: 0%; top: 0%; height: 6%; width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center" >
+
+https://github.com/Taar/systemd-podman-quadlet-workshop<!-- .element: class="workshop-link" -->
+</div>
+</div></script></section><section  data-markdown><script type="text/template"><!-- .slide: class="drop" -->
+<div class="" style="position: absolute; left: 0px; top: 0px; height: 700px; width: 960px; min-height: 700px; display: flex; flex-direction: column; align-items: center; justify-content: center" absolute="true">
+
+Open the file below in your text editor of choice
+
+`~/workshop-files/quadlet/whoami/whoami.container` 
+
+
+<style>
+	.logo-podman-background{
+		background: #CBCBC8;
+		 filter: blur(14px);
+		 position: absolute;
+	}
+	 .workshop-link {
+		font-size: 0.5em;
+	 }
+</style>
+
+<div class="" style="position: absolute; left: 0%; top: 94%; height: 6%; width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center" >
+
+<img src="LUG/2024-02-12/podman-logo.png" alt="" style="object-fit: scale-down" class="logo-podman-background">
+
+
+<img src="LUG/2024-02-12/podman-logo.png" alt="" style="z-index: 1000; object-fit: scale-down">
+
+</div>
+<div class="" style="position: absolute; left: 0%; top: 0%; height: 6%; width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center" >
+
+https://github.com/Taar/systemd-podman-quadlet-workshop<!-- .element: class="workshop-link" -->
+</div>
+</div></script></section><section  data-markdown><script type="text/template"><!-- .slide: class="drop" -->
+<div class="" style="position: absolute; left: 0px; top: 0px; height: 700px; width: 960px; min-height: 700px; display: flex; flex-direction: column; align-items: center; justify-content: center" absolute="true">
+
+```bash
+# This might take a bit since it will need to download the image
+
+systemctl --user start whoami
+
+# If it fails then you can download the image manually
+# podman image pull docker.io/traefik/whoami:latest
+```
+
+```bash
+systemctl --user status whoami
+```
+
+```bash
+# Starting the whoami.service also started its dependencies
+
+systemctl --user status whoami-network
+```
+
+```bash
+systemctl --user status whoami-image
+```
+
+
+<style>
+	.logo-podman-background{
+		background: #CBCBC8;
+		 filter: blur(14px);
+		 position: absolute;
+	}
+	 .workshop-link {
+		font-size: 0.5em;
+	 }
+</style>
+
+<div class="" style="position: absolute; left: 0%; top: 94%; height: 6%; width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center" >
+
+<img src="LUG/2024-02-12/podman-logo.png" alt="" style="object-fit: scale-down" class="logo-podman-background">
+
+
+<img src="LUG/2024-02-12/podman-logo.png" alt="" style="z-index: 1000; object-fit: scale-down">
+
+</div>
+<div class="" style="position: absolute; left: 0%; top: 0%; height: 6%; width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center" >
+
+https://github.com/Taar/systemd-podman-quadlet-workshop<!-- .element: class="workshop-link" -->
+</div>
+</div></script></section><section  data-markdown><script type="text/template"><!-- .slide: class="drop" -->
+<div class="" style="position: absolute; left: 0px; top: 0px; height: 700px; width: 960px; min-height: 700px; display: flex; flex-direction: column; align-items: center; justify-content: center" absolute="true">
+
+```bash
+# We can stil use podman commands to interact with the
+# container. Systemd is just managing the process.
+
+podman container ls | grep whoami
+```
+
+```bash
+podman network ls | grep whoami
+```
+
+```bash
+podman image ls | grep whoami
+```
+
+<style>
+	.logo-podman-background{
+		background: #CBCBC8;
+		 filter: blur(14px);
+		 position: absolute;
+	}
+	 .workshop-link {
+		font-size: 0.5em;
+	 }
+</style>
+
+<div class="" style="position: absolute; left: 0%; top: 94%; height: 6%; width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center" >
+
+<img src="LUG/2024-02-12/podman-logo.png" alt="" style="object-fit: scale-down" class="logo-podman-background">
+
+
+<img src="LUG/2024-02-12/podman-logo.png" alt="" style="z-index: 1000; object-fit: scale-down">
+
+</div>
+<div class="" style="position: absolute; left: 0%; top: 0%; height: 6%; width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center" >
+
+https://github.com/Taar/systemd-podman-quadlet-workshop<!-- .element: class="workshop-link" -->
+</div>
+</div></script></section><section  data-markdown><script type="text/template"><!-- .slide: class="drop" -->
+<div class="" style="position: absolute; left: 0px; top: 0px; height: 700px; width: 960px; min-height: 700px; display: flex; flex-direction: column; align-items: center; justify-content: center" absolute="true">
+
+```bash
+# ~/workshop-files/quadlet
+
+cat ./find-quadlet.sh
+
+./find-quadlet.sh
+
+# Locates the quadlet binary
+# ...
+# Symbolic link to: 
+# /usr/lib/podman/quadlet
+```
+
+```bash
+# To see the generated unit config
+# Also useful for debugging
+
+/usr/lib/podman/quadlet -dryrun -user | less
+# or
+/usr/lib/podman/quadlet -dryrun -user | bat --file-name=ini
+```
+
+
+
+<style>
+	.logo-podman-background{
+		background: #CBCBC8;
+		 filter: blur(14px);
+		 position: absolute;
+	}
+	 .workshop-link {
+		font-size: 0.5em;
+	 }
+</style>
+
+<div class="" style="position: absolute; left: 0%; top: 94%; height: 6%; width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center" >
+
+<img src="LUG/2024-02-12/podman-logo.png" alt="" style="object-fit: scale-down" class="logo-podman-background">
+
+
+<img src="LUG/2024-02-12/podman-logo.png" alt="" style="z-index: 1000; object-fit: scale-down">
+
+</div>
+<div class="" style="position: absolute; left: 0%; top: 0%; height: 6%; width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center" >
+
+https://github.com/Taar/systemd-podman-quadlet-workshop<!-- .element: class="workshop-link" -->
+</div>
+</div></script></section><section  data-markdown><script type="text/template"><!-- .slide: class="drop" -->
+<div class="" style="position: absolute; left: 0px; top: 0px; height: 700px; width: 960px; min-height: 700px; display: flex; flex-direction: column; align-items: center; justify-content: center" absolute="true">
+
+### Remember!
+
+**Generated** units *cannot* be enabled.
+
+```bash
+systemctl --user enable whoami
+
+# This will fail with an error!
+```
+
+
+<style>
+	.logo-podman-background{
+		background: #CBCBC8;
+		 filter: blur(14px);
+		 position: absolute;
+	}
+	 .workshop-link {
+		font-size: 0.5em;
+	 }
+</style>
+
+<div class="" style="position: absolute; left: 0%; top: 94%; height: 6%; width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center" >
+
+<img src="LUG/2024-02-12/podman-logo.png" alt="" style="object-fit: scale-down" class="logo-podman-background">
+
+
+<img src="LUG/2024-02-12/podman-logo.png" alt="" style="z-index: 1000; object-fit: scale-down">
+
+</div>
+<div class="" style="position: absolute; left: 0%; top: 0%; height: 6%; width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center" >
+
+https://github.com/Taar/systemd-podman-quadlet-workshop<!-- .element: class="workshop-link" -->
+</div>
+</div></script></section><section  data-markdown><script type="text/template"><!-- .slide: class="drop" -->
+<div class="" style="position: absolute; left: 0px; top: 0px; height: 700px; width: 960px; min-height: 700px; display: flex; flex-direction: column; align-items: center; justify-content: center" absolute="true">
+
+```bash
+# In another terminal window
+
+journalctl --user -f -u whoami.service
+
+# Show the logs for the whoami.service
+```
+
+```bash
+# Curl the whoami api using a container on the whoami network
+# using the host name set in the container unit configuration
+
+podman run --rm --network=whoami \
+quay.io/curl/curl:latest curl -v http://my-whoami/api
+```
+
+
+<style>
+	.logo-podman-background{
+		background: #CBCBC8;
+		 filter: blur(14px);
+		 position: absolute;
+	}
+	 .workshop-link {
+		font-size: 0.5em;
+	 }
+</style>
+
+<div class="" style="position: absolute; left: 0%; top: 94%; height: 6%; width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center" >
+
+<img src="LUG/2024-02-12/podman-logo.png" alt="" style="object-fit: scale-down" class="logo-podman-background">
+
+
+<img src="LUG/2024-02-12/podman-logo.png" alt="" style="z-index: 1000; object-fit: scale-down">
+
+</div>
+<div class="" style="position: absolute; left: 0%; top: 0%; height: 6%; width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center" >
+
+https://github.com/Taar/systemd-podman-quadlet-workshop<!-- .element: class="workshop-link" -->
+</div>
+</div></script></section><section  data-markdown><script type="text/template"><!-- .slide: class="drop" -->
+<div class="" style="position: absolute; left: 0px; top: 0px; height: 700px; width: 960px; min-height: 700px; display: flex; flex-direction: column; align-items: center; justify-content: center" absolute="true">
+
+```bash
+# Requires will set the whoami.service to failed if one of its
+# dependencies are stopped or fail
+systemctl --user stop whoami-image
+
+# The output in the other terminal will show that the
+# whoami.service has gone into a failed state
+```
+
+
+<style>
+	.logo-podman-background{
+		background: #CBCBC8;
+		 filter: blur(14px);
+		 position: absolute;
+	}
+	 .workshop-link {
+		font-size: 0.5em;
+	 }
+</style>
+
+<div class="" style="position: absolute; left: 0%; top: 94%; height: 6%; width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center" >
+
+<img src="LUG/2024-02-12/podman-logo.png" alt="" style="object-fit: scale-down" class="logo-podman-background">
+
+
+<img src="LUG/2024-02-12/podman-logo.png" alt="" style="z-index: 1000; object-fit: scale-down">
+
+</div>
+<div class="" style="position: absolute; left: 0%; top: 0%; height: 6%; width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center" >
+
+https://github.com/Taar/systemd-podman-quadlet-workshop<!-- .element: class="workshop-link" -->
+</div>
+</div></script></section><section  data-markdown><script type="text/template"><!-- .slide: class="drop" -->
+<div class="" style="position: absolute; left: 0px; top: 0px; height: 700px; width: 960px; min-height: 700px; display: flex; flex-direction: column; align-items: center; justify-content: center" absolute="true">
+
+## More Examples!
+
+There are additional examples within the `quadlet` directory that expand on the concepts learned today.
+
+
+<style>
+	.logo-podman-background{
+		background: #CBCBC8;
+		 filter: blur(14px);
+		 position: absolute;
+	}
+	 .workshop-link {
+		font-size: 0.5em;
+	 }
+</style>
+
+<div class="" style="position: absolute; left: 0%; top: 94%; height: 6%; width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center" >
+
+<img src="LUG/2024-02-12/podman-logo.png" alt="" style="object-fit: scale-down" class="logo-podman-background">
+
+
+<img src="LUG/2024-02-12/podman-logo.png" alt="" style="z-index: 1000; object-fit: scale-down">
+
+</div>
+<div class="" style="position: absolute; left: 0%; top: 0%; height: 6%; width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center" >
+
+https://github.com/Taar/systemd-podman-quadlet-workshop<!-- .element: class="workshop-link" -->
+</div>
+</div></script></section><section  data-markdown><script type="text/template"><!-- .slide: class="drop" -->
+<div class="" style="position: absolute; left: 0px; top: 0px; height: 700px; width: 960px; min-height: 700px; display: flex; flex-direction: column; align-items: center; justify-content: center" absolute="true">
+
+### systemd Sources
+
+- [Docs - `systemd.target`](https://www.freedesktop.org/software/systemd/man/latest/systemd.target.html)
+- [Docs - `systemd.unit`](https://www.freedesktop.org/software/systemd/man/latest/systemd.unit.html#)
+- [Docs - `systemd.socket`](https://www.freedesktop.org/software/systemd/man/latest/systemd.socket.html)
+- [Docs - `systemd.service`](https://www.freedesktop.org/software/systemd/man/latest/systemd.service.html#)
+- [Docs - `systemd.generator`](https://www.freedesktop.org/software/systemd/man/latest/systemd.generator.html#)
+- [Docs - `systemd.device`](https://www.freedesktop.org/software/systemd/man/latest/systemd.device.html)
+- [Docs - `systemd.mount`](https://www.freedesktop.org/software/systemd/man/latest/systemd.mount.html)
+</div></script></section><section  data-markdown><script type="text/template"><!-- .slide: class="drop" -->
+<div class="" style="position: absolute; left: 0px; top: 0px; height: 700px; width: 960px; min-height: 700px; display: flex; flex-direction: column; align-items: center; justify-content: center" absolute="true">
+
+### systemd Sources
+
+- [Docs - `systemd.scope`](https://www.freedesktop.org/software/systemd/man/latest/systemd.scope.html)
+- [Docs - `systemd.slice`](https://www.freedesktop.org/software/systemd/man/latest/systemd.slice.html)
+- [Docs - `systemd.timer`](https://www.freedesktop.org/software/systemd/man/latest/systemd.timer.html)
+- [Docs - `systemd.automount`](https://www.freedesktop.org/software/systemd/man/latest/systemd.automount.html)
+- [Docs - `systemd.swap`](https://www.freedesktop.org/software/systemd/man/latest/systemd.swap.html)
+- [Docs - `systemd.path`](https://www.freedesktop.org/software/systemd/man/latest/systemd.path.html)
+- [Docs - `systemd.preset`](https://www.freedesktop.org/software/systemd/man/latest/systemd.preset.html)
+- [Docs - `systemd.exec`](https://www.freedesktop.org/software/systemd/man/latest/systemd.exec.html)
+- [Docs - `systemd.special`](https://www.freedesktop.org/software/systemd/man/latest/systemd.special.html#)
+</div></script></section><section  data-markdown><script type="text/template"><!-- .slide: class="drop" -->
+<div class="" style="position: absolute; left: 0px; top: 0px; height: 700px; width: 960px; min-height: 700px; display: flex; flex-direction: column; align-items: center; justify-content: center" absolute="true">
+
+## Podman Sources
+
+- [Docs - `podman-systemd.unit` - `v4.9.0`](https://docs.podman.io/en/v4.9.0/markdown/podman-systemd.unit.5.html)
+</div></script></section><section  data-markdown><script type="text/template"><!-- .slide: class="drop" -->
+<div class="" style="position: absolute; left: 0px; top: 0px; height: 700px; width: 960px; min-height: 700px; display: flex; flex-direction: column; align-items: center; justify-content: center" absolute="true">
+
+### Manual Pages Sources
+
+Arch Linux / openSUSE Tumbleweed
+
+- `test(1)` - `man test`
+- `ln(1)` - `man ln`
+- `readlink(1)` - `man readlink`
+- `systemctl(1)` - `man systemctl`
+- `journalctl(1)` - `man journalctl`
+- `sd_notify(3)` - `man sd_notify`
+- `podman-systemd.unit` - `man podman-systemd.unit`
+</div></script></section><section  data-markdown><script type="text/template"><!-- .slide: class="drop" -->
+<div class="" style="position: absolute; left: 0px; top: 0px; height: 700px; width: 960px; min-height: 700px; display: flex; flex-direction: column; align-items: center; justify-content: center" absolute="true">
+
+### Manual Pages Sources
+
+Arch Linux / openSUSE Tumbleweed
+
+- `systemd.special(7)` - `man systemd.special`
+- `systemd.unit(7)` - `man systemd.unit`
+- `systemd.service(5)` - `man systemd.service`
+- `systemd.exec(5)` - `man systemd.exec`
+- `systed.preset(5)` - `man systemd.preset`
+- `pam_systemd(8)` - `man pam_systemd`
+</div></script></section><section  data-markdown><script type="text/template"><!-- .slide: class="drop" -->
+<div class="" style="position: absolute; left: 0px; top: 0px; height: 700px; width: 960px; min-height: 700px; display: flex; flex-direction: column; align-items: center; justify-content: center" absolute="true">
+
+### Other Sources
+
+- [Arch Linux Wiki - XDG Base Directory](https://wiki.archlinux.org/title/XDG_Base_Directory)
+</div></script></section><section  data-markdown><script type="text/template"><!-- .slide: class="drop" -->
+<div class="" style="position: absolute; left: 0px; top: 0px; height: 700px; width: 960px; min-height: 700px; display: flex; flex-direction: column; align-items: center; justify-content: center" absolute="true">
+
+### Logos Sources
+
+- [Podman Logo](https://github.com/containers/podman/blob/v4.9.0/logo/podman-logo-source.svg)
+- [systemd logo](https://github.com/systemd/brand.systemd.io/tree/main)
+</div></script></section><section  data-markdown><script type="text/template"><!-- .slide: class="drop" -->
+<div class="" style="position: absolute; left: 0px; top: 0px; height: 700px; width: 960px; min-height: 700px; display: flex; flex-direction: column; align-items: center; justify-content: center" absolute="true">
+
+## Fin!
+</div></script></section></div>
+    </div>
+
+    <script src="dist/reveal.js"></script>
+
+    <script src="plugin/markdown/markdown.js"></script>
+    <script src="plugin/highlight/highlight.js"></script>
+    <script src="plugin/zoom/zoom.js"></script>
+    <script src="plugin/notes/notes.js"></script>
+    <script src="plugin/math/math.js"></script>
+	<script src="plugin/mermaid/mermaid.js"></script>
+	<script src="plugin/chart/chart.min.js"></script>
+	<script src="plugin/chart/plugin.js"></script>
+	<script src="plugin/customcontrols/plugin.js"></script>
+	<script src="plugin/chalkboard/plugin.js"></script>
+	<script src="plugin/reveal-pointer/pointer.js"></script>
+	<script src="plugin/elapsed-time-bar/elapsed-time-bar.js"></script>
+
+    <script>
+      function extend() {
+        var target = {};
+        for (var i = 0; i < arguments.length; i++) {
+          var source = arguments[i];
+          for (var key in source) {
+            if (source.hasOwnProperty(key)) {
+              target[key] = source[key];
+            }
+          }
+        }
+        return target;
+      }
+
+	  function isLight(color) {
+		let hex = color.replace('#', '');
+
+		// convert #fff => #ffffff
+		if(hex.length == 3){
+			hex = `${hex[0]}${hex[0]}${hex[1]}${hex[1]}${hex[2]}${hex[2]}`;
+		}
+
+		const c_r = parseInt(hex.substr(0, 2), 16);
+		const c_g = parseInt(hex.substr(2, 2), 16);
+		const c_b = parseInt(hex.substr(4, 2), 16);
+		const brightness = ((c_r * 299) + (c_g * 587) + (c_b * 114)) / 1000;
+		return brightness > 155;
+	}
+
+	var bgColor = getComputedStyle(document.documentElement).getPropertyValue('--r-background-color').trim();
+	var isLight = isLight(bgColor);
+
+	if(isLight){
+		document.body.classList.add('has-light-background');
+	} else {
+		document.body.classList.add('has-dark-background');
+	}
+
+      // default options to init reveal.js
+      var defaultOptions = {
+        controls: true,
+        progress: true,
+        history: true,
+        center: true,
+        transition: 'default', // none/fade/slide/convex/concave/zoom
+        plugins: [
+          RevealMarkdown,
+          RevealHighlight,
+          RevealZoom,
+          RevealNotes,
+          RevealMath.MathJax3,
+		  RevealMermaid,
+		  RevealChart,
+		  RevealCustomControls,
+	      RevealPointer,
+		  RevealChalkboard, 
+		  ElapsedTimeBar
+        ],
+
+
+    	allottedTime: 5400 * 1000,
+
+		mathjax3: {
+			mathjax: 'plugin/math/mathjax/tex-mml-chtml.js',
+		},
+		markdown: {
+		  gfm: true,
+		  mangle: true,
+		  pedantic: false,
+		  smartLists: false,
+		  smartypants: false,
+		},
+
+		mermaid: {
+			theme: isLight ? 'default' : 'dark',
+		},
+
+		customcontrols: {
+			controls: [
+				{id: 'toggle-overview',
+				title: 'Toggle overview (O)',
+				icon: '<i class="fa fa-th"></i>',
+				action: 'Reveal.toggleOverview();'
+				},
+				{ icon: '<i class="fa fa-pen-square"></i>',
+				title: 'Toggle chalkboard (B)',
+				action: 'RevealChalkboard.toggleChalkboard();'
+				},
+				{ icon: '<i class="fa fa-pen"></i>',
+				title: 'Toggle notes canvas (C)',
+				action: 'RevealChalkboard.toggleNotesCanvas();'
+				},
+			]
+		},
+      };
+
+      // options from URL query string
+      var queryOptions = Reveal().getQueryHash() || {};
+
+      var options = extend(defaultOptions, {"width":960,"height":700,"margin":0.04,"controls":true,"progress":true,"slideNumber":true,"transition":"slide","transitionSpeed":"fast"}, queryOptions);
+    </script>
+
+    <script>
+      Reveal.initialize(options);
+    </script>
+  </body>
+
+  <!-- created with Advanced Slides -->
+</html>
